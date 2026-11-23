@@ -1,8 +1,8 @@
 // 화면 전환 (홈 → 코인 → 게임 → 결과 · 내 기록 · 전체 랭킹)
 import { appliedBonus } from '../core/coin-view';
 import { grantBonus, loadCoins, rewardDelta, saveCoins, spend, total, type CoinState } from '../core/coins';
-import { toLeaderboardScore } from '../core/leaderboard';
-import { bestComparisonText } from '../core/ranking';
+import { toLeaderboardScore, usesTossLeaderboard } from '../core/leaderboard';
+import { bestComparisonText, RANKED_GAME_IDS } from '../core/ranking';
 import { addRecord, getBest, type RunRecord } from '../core/records';
 import { SITE_URL, shareText } from '../core/share';
 import { loadSkin } from '../core/skins';
@@ -11,6 +11,7 @@ import type { GameInstance, GameResult } from '../games/types';
 import type { PlatformAdapter, SubmitOutcome } from '../platform';
 import { openCoinSheet, type AdReward } from './coin-sheet';
 import { renderCoinScreen } from './coins';
+import { createGameTabs } from './game-tabs';
 import { el, readSafeInsets } from './dom';
 import { renderGlobalRanking } from './global-ranking';
 import { clearSubmittedMarker, syncGlobalRanking } from './global-status';
@@ -65,8 +66,8 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
       topBar: topBar(),
       coinsEnabled,
       onPlay: requestPlay,
-      onRecords: showRecords,
-      onRanking: showRanking,
+      onRecords: () => showRecords(),
+      onRanking: () => showRanking(),
       onSkins: showSkins,
     });
   };
@@ -78,23 +79,34 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
 
   const editNickname = (after: () => void) =>
     openNicknameDialog(root, platform.storage, () => {
-      clearSubmittedMarker(platform, defaultGame);
+      for (const id of RANKED_GAME_IDS) clearSubmittedMarker(platform, id);
       after();
     });
 
-  function showRecords() {
+  const gameTitle = (gameId: string) => findGame(gameId)?.title ?? gameId;
+
+  function showRecords(gameId: string = defaultGame) {
     stopGame();
-    renderRecords(root, { topBar: topBar('내 기록', showHome), storage: platform.storage, gameId: defaultGame, onRanking: showRanking });
+    renderRecords(root, {
+      topBar: topBar('내 기록', showHome),
+      tabs: createGameTabs(games, gameId, showRecords),
+      storage: platform.storage,
+      gameId,
+      gameTitle: gameTitle(gameId),
+      onRanking: () => showRanking(gameId),
+    });
   }
 
-  function showRanking() {
+  function showRanking(gameId: string = defaultGame) {
     stopGame();
     renderGlobalRanking(root, {
       topBar: topBar('전체 랭킹', showHome),
+      tabs: createGameTabs(games, gameId, showRanking),
+      showTossLeaderboard: usesTossLeaderboard(gameId),
       platform,
       client,
-      gameId: defaultGame,
-      onNickname: () => editNickname(showRanking),
+      gameId,
+      onNickname: () => editNickname(() => showRanking(gameId)),
     });
   }
 
@@ -127,7 +139,7 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
   const showResult = (gameId: string, result: GameResult) => {
     let isNewBest = false;
     let submission: Promise<SubmitOutcome> | null = null;
-    const available = platform.leaderboard.available();
+    const available = usesTossLeaderboard(gameId) ? platform.leaderboard.available() : Promise.resolve(false);
     const previousBest = getBest(platform.storage, gameId);
     if (result.rounds >= 1 && result.avgMs !== null && result.bestMs !== null) {
       const record: RunRecord = {
@@ -160,15 +172,16 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
             comparison,
             coinsEnabled,
             platformName: platform.name,
+            statLabels: gameId === 'vision' ? { avg: '평균 판단', best: '최고 판단' } : { avg: '평균 반응', best: '최고 반응' },
             toss: { available, submission, leaderboard: platform.leaderboard },
             global: () => syncGlobalRanking(platform, client, gameId),
           },
           {
             onRetry: () => requestPlay(gameId),
             onHome: showHome,
-            onRanking: showRanking,
+            onRanking: () => showRanking(gameId),
             onNickname: (retry) => editNickname(retry),
-            onShare: () => platform.share(shareText(result.rounds, result.avgMs)),
+            onShare: () => platform.share(shareText(gameTitle(gameId), result.rounds, result.avgMs)),
           },
         );
     }, 600);

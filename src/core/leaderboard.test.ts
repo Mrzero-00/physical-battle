@@ -1,6 +1,6 @@
 // 리더보드 점수 변환·응답 매핑 단위 테스트
 import { describe, expect, it } from 'vitest';
-import { mapSubmitResponse, submitOutcomeMessage, toLeaderboardScore, type SubmitOutcome } from './leaderboard';
+import { mapSubmitResponse, submitOutcomeMessage, toLeaderboardScore, usesTossLeaderboard, type SubmitOutcome } from './leaderboard';
 import type { RunRecord } from './records';
 
 const rec = (over: Partial<RunRecord> = {}): RunRecord => ({ gameId: 'reaction', rounds: 23, avgMs: 240, bestMs: 180, at: 0, ...over });
@@ -43,5 +43,12 @@ describe('submitOutcomeMessage', () => {
   it('모든 결과에 문구가 있다', () => {
     const all: SubmitOutcome[] = ['submitted', 'unsupported', 'leaderboard-not-found', 'profile-not-found', 'invalid-score', 'error'];
     for (const o of all) expect(submitOutcomeMessage(o).length).toBeGreaterThan(0);
+  });
+});
+
+describe('usesTossLeaderboard', () => {
+  it('토스 리더보드는 반응속도만', () => {
+    expect(usesTossLeaderboard('reaction')).toBe(true);
+    expect(usesTossLeaderboard('vision')).toBe(false);
   });
 });

@@ -45,4 +45,14 @@ describe('fake ranking client', () => {
     const kept = await client.submit({ ...sub, rounds: 5, avgMs: 300, bestMs: 250 });
     expect(kept).toMatchObject({ kind: 'ok', data: { status: 'kept', rank: 3, rounds: 12 } });
   });
+
+  it('게임별로 따로 저장한다', async () => {
+    const client = createFakeRankingClient(memory());
+    await client.submit({ gameId: 'vision', playerId: 'toss:mock-12345678', nickname: '목업 플레이어', rounds: 20, avgMs: 500, bestMs: 400 });
+    const vision = await client.board('vision', 'toss:mock-12345678');
+    const reaction = await client.board('reaction', 'toss:mock-12345678');
+    if (vision.kind !== 'ok' || reaction.kind !== 'ok') throw new Error('board');
+    expect(vision.data.me?.rank).toBe(1);
+    expect(reaction.data.me).toBeNull();
+  });
 });

@@ -68,4 +68,12 @@ describe('records', () => {
     expect(getBest(s, 'reaction')).toBeNull();
     expect(getRecent(s, 'reaction')).toHaveLength(0);
   });
+
+  it('게임별 기록은 서로 섞이지 않는다', () => {
+    const s = memory();
+    addRecord(s, { ...rec(9, 700), gameId: 'vision' });
+    expect(getBest(s, 'reaction')).toBeNull();
+    expect(getRecent(s, 'reaction')).toHaveLength(0);
+    expect(getBest(s, 'vision')?.rounds).toBe(9);
+  });
 });

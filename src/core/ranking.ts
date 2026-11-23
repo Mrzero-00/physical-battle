@@ -1,5 +1,5 @@
 // 전체 랭킹 점수 인코딩·제출 검증·닉네임 규칙 (클라이언트·서버 공용)
-export const RANKED_GAME_IDS = ['reaction'] as const;
+export const RANKED_GAME_IDS = ['reaction', 'vision'] as const;
 export const MAX_ROUNDS = 999;
 export const MIN_MS = 100;
 export const MAX_AVG_MS = 99999;

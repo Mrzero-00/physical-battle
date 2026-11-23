@@ -10,6 +10,7 @@ const END_REASON: Record<string, string> = {
   timeout: '시간 초과',
   miss: '버튼을 빗나감',
   'false-start': '너무 빨리 누름 (부정출발)',
+  wrong: '오답',
   none: '종료',
 };
 
@@ -28,6 +29,7 @@ export interface ResultView {
   comparison: string | null;
   coinsEnabled: boolean;
   platformName: 'web' | 'apps-in-toss' | 'mock';
+  statLabels: { avg: string; best: string };
   toss: { available: Promise<boolean>; submission: Promise<SubmitOutcome> | null; leaderboard: LeaderboardPort };
   global: () => Promise<GlobalStatus>;
 }
@@ -58,8 +60,8 @@ export function renderResult(root: HTMLElement, view: ResultView, actions: Resul
     row.append(el('dt', '', label), el('dd', '', value));
     stats.appendChild(row);
   };
-  stat('평균 반응', result.avgMs === null ? '-' : `${result.avgMs}ms`);
-  stat('최고 반응', result.bestMs === null ? '-' : `${result.bestMs}ms`);
+  stat(view.statLabels.avg, result.avgMs === null ? '-' : `${result.avgMs}ms`);
+  stat(view.statLabels.best, result.bestMs === null ? '-' : `${result.bestMs}ms`);
   stat('개인 최고', bestRounds === null ? '-' : `${bestRounds}R`);
   box.appendChild(stats);
 

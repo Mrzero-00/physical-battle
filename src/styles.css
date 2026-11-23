@@ -1132,3 +1132,117 @@ button {
 .skin-option.selected .skin-check {
   visibility: visible;
 }
+
+.game-tabs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.game-tab {
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.game-tab[aria-selected='true'] {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.vision-area {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.vision-field {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.vision-ball {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #f7f7f2;
+  color: #10131a;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  box-shadow: inset -4px -6px 0 rgba(0, 0, 0, 0.12);
+  visibility: hidden;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.vision-ball.visible {
+  visibility: visible;
+}
+
+.vision-choices {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  min-height: calc(2 * 68px + 10px + 32px);
+  padding: 16px calc(16px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(16px + var(--safe-left));
+  background: var(--bg);
+  border-top: 1px solid #1d2230;
+}
+
+.vision-choice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 68px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  font-size: 28px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 120ms ease-out;
+}
+
+.vision-choice.is-correct {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.vision-choice.is-wrong {
+  background: var(--danger);
+  color: #fff;
+}
+
+.vision-choice.is-answer {
+  outline: 3px solid var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vision-ball,
+  .vision-choice {
+    transition: none;
+    animation: none;
+  }
+}

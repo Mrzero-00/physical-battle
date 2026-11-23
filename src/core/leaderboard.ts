@@ -9,6 +9,12 @@ export type SubmitOutcome =
   | 'invalid-score'
   | 'error';
 
+export const TOSS_LEADERBOARD_GAME_ID = 'reaction';
+
+export function usesTossLeaderboard(gameId: string): boolean {
+  return gameId === TOSS_LEADERBOARD_GAME_ID;
+}
+
 export function toLeaderboardScore(record: RunRecord): string | null {
   if (!isValidRecord(record)) return null;
   return String(record.rounds);

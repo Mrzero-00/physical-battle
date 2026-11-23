@@ -6,6 +6,8 @@ import { rankingButton } from './ranking';
 
 export interface GlobalRankingOptions {
   topBar: HTMLElement;
+  tabs: HTMLElement;
+  showTossLeaderboard: boolean;
   platform: PlatformAdapter;
   client: RankingClient;
   gameId: string;
@@ -52,7 +54,7 @@ export function renderGlobalRanking(root: HTMLElement, options: GlobalRankingOpt
   status.setAttribute('aria-live', 'polite');
   const content = el('div', 'rank-content');
   const tools = el('div', 'rank-tools');
-  body.append(tools, status, content);
+  body.append(options.tabs, tools, status, content);
   screen.append(options.topBar, body);
   root.replaceChildren(screen);
 
@@ -88,7 +90,7 @@ export function renderGlobalRanking(root: HTMLElement, options: GlobalRankingOpt
     }
   });
   options.platform.leaderboard.available().then((ok) => {
-    if (!ok || !screen.isConnected) return;
+    if (!ok || !screen.isConnected || !options.showTossLeaderboard) return;
     const note = el('p', 'ranking-note', '친구 순위는 토스 랭킹에서 볼 수 있어요');
     tools.append(note, rankingButton(options.platform.leaderboard, note));
   });

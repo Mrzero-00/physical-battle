@@ -142,4 +142,14 @@ describe('ranking service', () => {
     expect(rankKey('reaction')).toBe('pb:rank:v2:reaction');
     expect(metaKey('reaction')).toBe('pb:rank:v2:reaction:meta');
   });
+
+  it('vision 기록은 게임별 키에 저장되고 reaction에 영향이 없다', async () => {
+    const { svc, store } = setup();
+    await svc.handle(post(submission()));
+    const res = await svc.handle(post(submission({ gameId: 'vision', playerId: 'web:vision-player-1', avgMs: 820, bestMs: 500 })));
+    expect(res.status).toBe(200);
+    expect(await store.zcard('pb:rank:v2:vision')).toBe(1);
+    const reaction = await (await svc.handle(get('gameId=reaction'))).json();
+    expect(reaction.total).toBe(1);
+  });
 });

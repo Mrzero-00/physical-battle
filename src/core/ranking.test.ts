@@ -142,3 +142,10 @@ describe('bestComparisonText', () => {
     expect(bestComparisonText({ rounds: 0, avgMs: null }, { rounds: 8, avgMs: 150 })).toBeNull();
   });
 });
+
+describe('ranked games', () => {
+  it('vision은 허용, dynamic-vision은 거부', () => {
+    expect(validateSubmission(body({ gameId: 'vision', avgMs: 820, bestMs: 500 })).ok).toBe(true);
+    expect(validateSubmission(body({ gameId: 'dynamic-vision' }))).toEqual({ ok: false, error: 'invalid-game' });
+  });
+});

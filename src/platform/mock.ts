@@ -8,8 +8,15 @@ import { createWebStorage, storedId, webShare } from './web';
 export const MOCK_AD_DELAY_MS = 1500;
 export const MOCK_NICKNAME = '목업 플레이어';
 const MOCK_PLAYER_KEY = 'pb:mock-player';
-const MOCK_BOARD_KEY = 'pb:mock-ranking';
-const BOTS: Array<[string, number, number]> = [
+const boardKey = (gameId: string) => `pb:mock-ranking:${gameId}`;
+const BOTS: Record<string, Array<[string, number, number]>> = {
+  vision: [
+    ['매의눈', 12, 640],
+    ['숫자사냥꾼', 9, 780],
+    ['초보탈출', 5, 1100],
+  ],
+};
+const REACTION_BOTS: Array<[string, number, number]> = [
   ['번개손', 14, 158],
   ['반응왕', 13, 171],
   ['초보탈출', 9, 214],
@@ -30,20 +37,20 @@ interface StoredEntry {
 }
 
 export function createFakeRankingClient(storage: KeyValueStorage): RankingClient {
-  const load = (): Record<string, StoredEntry> => {
+  const load = (gameId: string): Record<string, StoredEntry> => {
     try {
-      const raw = storage.get(MOCK_BOARD_KEY);
+      const raw = storage.get(boardKey(gameId));
       if (raw) return JSON.parse(raw) as Record<string, StoredEntry>;
     } catch {
-      storage.set(MOCK_BOARD_KEY, '');
+      storage.set(boardKey(gameId), '');
     }
     const seeded: Record<string, StoredEntry> = {};
-    BOTS.forEach(([nickname, rounds, avg], i) => {
+    (BOTS[gameId] ?? REACTION_BOTS).forEach(([nickname, rounds, avg], i) => {
       seeded[`web:bot-000${i}`] = { nickname, score: encodeScore(rounds, avg) };
     });
     return seeded;
   };
-  const save = (entries: Record<string, StoredEntry>) => storage.set(MOCK_BOARD_KEY, JSON.stringify(entries));
+  const save = (gameId: string, entries: Record<string, StoredEntry>) => storage.set(boardKey(gameId), JSON.stringify(entries));
   const ranked = (entries: Record<string, StoredEntry>) =>
     Object.entries(entries).sort((a, b) => b[1].score - a[1].score);
 
@@ -51,17 +58,17 @@ export function createFakeRankingClient(storage: KeyValueStorage): RankingClient
     async submit(submission): Promise<ApiResult<SubmitResponse>> {
       const checked = validateSubmission(submission);
       if (!checked.ok) return { kind: 'invalid' };
-      const entries = load();
+      const entries = load(checked.value.gameId);
       const score = encodeScore(checked.value.rounds, checked.value.avgMs);
       const previous = entries[checked.value.playerId]?.score ?? null;
       const improved = previous === null || score > previous;
       entries[checked.value.playerId] = { nickname: checked.value.nickname, score: improved ? score : (previous as number) };
-      save(entries);
+      save(checked.value.gameId, entries);
       const rank = ranked(entries).findIndex(([id]) => id === checked.value.playerId) + 1;
       return { kind: 'ok', data: { status: improved ? 'improved' : 'kept', rank, ...decodeScore(entries[checked.value.playerId].score) } };
     },
-    async board(_gameId, playerId): Promise<ApiResult<Board>> {
-      const entries = load();
+    async board(gameId, playerId): Promise<ApiResult<Board>> {
+      const entries = load(gameId);
       const list = ranked(entries);
       const top = list.slice(0, TOP_LIMIT).map(([id, e], i) => ({
         rank: i + 1,

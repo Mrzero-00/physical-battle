@@ -12,8 +12,10 @@ export function formatRecordDate(at: number): string {
 
 export interface RecordsOptions {
   topBar: HTMLElement;
+  tabs: HTMLElement;
   storage: KeyValueStorage;
   gameId: string;
+  gameTitle: string;
   onRanking(): void;
 }
 
@@ -27,7 +29,7 @@ export function renderRecords(root: HTMLElement, options: RecordsOptions): void 
   const recent = getRecent(options.storage, options.gameId);
 
   const card = el('section', 'best-card');
-  card.appendChild(el('p', 'best-label', '반응속도 최고 기록'));
+  card.appendChild(el('p', 'best-label', `${options.gameTitle} 최고 기록`));
   if (best) {
     card.append(
       el('p', 'best-rounds', `${best.rounds}R`),
@@ -52,7 +54,7 @@ export function renderRecords(root: HTMLElement, options: RecordsOptions): void 
   go.addEventListener('click', options.onRanking);
 
   const body = el('div', 'page-body');
-  body.append(card, section, go);
+  body.append(options.tabs, card, section, go);
   screen.append(options.topBar, body);
   root.replaceChildren(screen);
 }
