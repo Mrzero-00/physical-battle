@@ -1,4 +1,5 @@
 // 피지컬 테스트 미니게임 공통 인터페이스
+import type { SkinId } from '../core/skins';
 import type { KeyValueStorage } from '../platform';
 
 export interface InputSample {
@@ -20,6 +21,7 @@ export interface GameContext {
   storage: KeyValueStorage;
   safeInsets: { top: number; right: number; bottom: number; left: number };
   setStatus(text: string): void;
+  skin?: SkinId;
   onFinish(result: GameResult): void;
 }
 

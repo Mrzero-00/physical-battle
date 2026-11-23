@@ -1,4 +1,5 @@
 // 반응속도 테스트 게임 모듈 (무작위 위치 버튼, 끝없는 라운드, 연속 버튼)
+import { skinMarkup } from '../../core/skins';
 import type { GameContext, GameInstance, GameModule, GameResult, InputSample } from '../types';
 import {
   advance,
@@ -38,6 +39,8 @@ function createReactionGame(ctx: GameContext): GameInstance {
   button.setAttribute('aria-label', '지금 누르세요');
   button.style.width = `${BUTTON_SIZE}px`;
   button.style.height = `${BUTTON_SIZE}px`;
+  button.dataset.skin = ctx.skin ?? 'default';
+  button.innerHTML = skinMarkup(ctx.skin ?? 'default');
   const hint = document.createElement('p');
   hint.className = 'reaction-hint';
   const announce = document.createElement('div');

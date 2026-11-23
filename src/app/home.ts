@@ -12,6 +12,7 @@ export interface HomeOptions {
   onPlay(gameId: string): void;
   onRecords(): void;
   onRanking(): void;
+  onSkins(): void;
 }
 
 export function renderHome(root: HTMLElement, options: HomeOptions): void {
@@ -55,7 +56,10 @@ export function renderHome(root: HTMLElement, options: HomeOptions): void {
   const ranking = el('button', 'btn nav-btn', '전체 랭킹');
   ranking.type = 'button';
   ranking.addEventListener('click', options.onRanking);
-  nav.append(records, ranking);
+  const skins = el('button', 'btn nav-btn nav-wide', '버튼 모양');
+  skins.type = 'button';
+  skins.addEventListener('click', options.onSkins);
+  nav.append(records, ranking, skins);
 
   const body = el('div', 'page-body');
   body.append(header, list, nav);

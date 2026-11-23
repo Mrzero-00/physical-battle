@@ -5,6 +5,7 @@ import { toLeaderboardScore } from '../core/leaderboard';
 import { bestComparisonText } from '../core/ranking';
 import { addRecord, getBest, type RunRecord } from '../core/records';
 import { SITE_URL, shareText } from '../core/share';
+import { loadSkin } from '../core/skins';
 import { findGame, games } from '../games/registry';
 import type { GameInstance, GameResult } from '../games/types';
 import type { PlatformAdapter, SubmitOutcome } from '../platform';
@@ -18,6 +19,7 @@ import { openNicknameDialog } from './nickname';
 import { createRankingClient, type RankingClient } from './ranking-client';
 import { renderRecords } from './records';
 import { renderResult } from './result';
+import { renderSkinPicker } from './skins';
 import { createTopBar } from './topbar';
 
 function rankingClientFor(platform: PlatformAdapter): RankingClient {
@@ -65,8 +67,14 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
       onPlay: requestPlay,
       onRecords: showRecords,
       onRanking: showRanking,
+      onSkins: showSkins,
     });
   };
+
+  function showSkins() {
+    stopGame();
+    renderSkinPicker(root, { topBar: topBar('버튼 모양', showHome), storage: platform.storage });
+  }
 
   const editNickname = (after: () => void) =>
     openNicknameDialog(root, platform.storage, () => {
@@ -191,6 +199,7 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
       root: slot,
       storage: platform.storage,
       safeInsets: readSafeInsets(),
+      skin: loadSkin(platform.storage),
       setStatus: (text) => {
         status.textContent = text;
       },
