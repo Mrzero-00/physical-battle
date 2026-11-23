@@ -1,7 +1,7 @@
 // 기록 저장소 단위 테스트
 import { describe, expect, it } from 'vitest';
 import type { KeyValueStorage } from '../platform';
-import { addRecord, getBest, getRecent, type RunRecord } from './records';
+import { addRecord, getBest, getRecent, recordsKey, type RunRecord } from './records';
 
 function memory(): KeyValueStorage {
   const map = new Map<string, string>();
@@ -55,8 +55,16 @@ describe('records', () => {
 
   it('손상된 저장값은 무시한다', () => {
     const s = memory();
-    s.set('pb:records:reaction', '{not json');
+    s.set(recordsKey('reaction'), '{not json');
     expect(getBest(s, 'reaction')).toBeNull();
     expect(addRecord(s, rec(2, 300)).saved).toBe(true);
+  });
+
+  it('기록 키는 v2이고 예전 키의 기록은 읽지 않는다', () => {
+    const s = memory();
+    expect(recordsKey('reaction')).toBe('pb:records:v2:reaction');
+    s.set('pb:records:reaction', JSON.stringify({ recent: [rec(30, 300)], best: rec(30, 300) }));
+    expect(getBest(s, 'reaction')).toBeNull();
+    expect(getRecent(s, 'reaction')).toHaveLength(0);
   });
 });

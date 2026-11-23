@@ -1,13 +1,17 @@
-// 반응속도 테스트 게임 모듈 (무작위 위치 버튼, 끝없는 라운드)
+// 반응속도 테스트 게임 모듈 (무작위 위치 버튼, 끝없는 라운드, 연속 버튼)
 import type { GameContext, GameInstance, GameModule, GameResult, InputSample } from '../types';
 import {
+  advance,
   BUTTON_SIZE,
+  burstLabel,
   EDGE_MARGIN,
   type Judgement,
   isHit,
   judgeTap,
+  MIN_CENTER_GAP,
   pickDelay,
-  randomPosition,
+  type Point,
+  randomPositionAwayFrom,
   summarizeRun,
   timeLimitFor,
 } from './scoring';
@@ -41,21 +45,26 @@ function createReactionGame(ctx: GameContext): GameInstance {
   const results: Judgement[] = [];
   let phase: Phase = 'ready';
   let round = 1;
+  let index = 0;
+  let lastPos: Point | null = null;
   let shownAt: number | null = null;
   let delayTimer = 0;
   let timeoutTimer = 0;
   let frame = 0;
   let finished: GameResult | null = null;
 
-  const setPhase = (next: Phase) => {
+  let lastMs: number | undefined;
+
+  const setPhase = (next: Phase, keepTone = false) => {
     phase = next;
-    stage.setTone(next as StageTone);
+    if (!keepTone) stage.setTone(next as StageTone);
     area.dataset.phase = next;
   };
 
-  const updateStatus = (last?: number) => {
-    const lastText = last === undefined ? '' : ` · 직전 ${Math.round(last)}ms`;
-    ctx.setStatus(`라운드 ${round} · 제한 ${timeLimitFor(round)}ms${lastText}`);
+  const updateStatus = () => {
+    const lastText = lastMs === undefined ? '' : ` · 직전 ${Math.round(lastMs)}ms`;
+    const label = burstLabel(round, index);
+    ctx.setStatus(`라운드 ${round} · 제한 ${timeLimitFor(round)}ms${lastText}${label ? ` · ${label}` : ''}`);
   };
 
   const clearTimers = () => {
@@ -78,7 +87,7 @@ function createReactionGame(ctx: GameContext): GameInstance {
 
   const showButton = () => {
     const insets = ctx.safeInsets;
-    const pos = randomPosition(
+    const pos = randomPositionAwayFrom(
       Math.random,
       { width: area.clientWidth, height: area.clientHeight },
       BUTTON_SIZE,
@@ -88,7 +97,10 @@ function createReactionGame(ctx: GameContext): GameInstance {
         bottom: EDGE_MARGIN + insets.bottom,
         left: EDGE_MARGIN + insets.left,
       },
+      lastPos,
+      MIN_CENTER_GAP,
     );
+    lastPos = pos;
     button.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
     frame = window.requestAnimationFrame((ts) => {
       if (phase !== 'waiting') return;
@@ -103,9 +115,16 @@ function createReactionGame(ctx: GameContext): GameInstance {
 
   const scheduleRound = () => {
     shownAt = null;
+    lastPos = null;
     setPhase('waiting');
     hint.textContent = '';
     delayTimer = window.setTimeout(showButton, pickDelay(Math.random));
+  };
+
+  const showNextInBurst = () => {
+    shownAt = null;
+    setPhase('waiting', true);
+    showButton();
   };
 
   const onResize = () => stage.resize();
@@ -118,6 +137,9 @@ function createReactionGame(ctx: GameContext): GameInstance {
   const instance: GameInstance = {
     start() {
       round = 1;
+      index = 0;
+      lastPos = null;
+      lastMs = undefined;
       results.length = 0;
       finished = null;
       setPhase('ready');
@@ -145,9 +167,14 @@ function createReactionGame(ctx: GameContext): GameInstance {
       window.clearTimeout(timeoutTimer);
       results.push(judgement);
       button.classList.remove('visible');
-      round += 1;
-      updateStatus(judgement.ms);
-      scheduleRound();
+      lastMs = judgement.ms;
+      const next = advance({ round, index }, judgement);
+      if (next.kind === 'over') return;
+      round = next.round;
+      index = next.index;
+      updateStatus();
+      if (next.kind === 'next-button') showNextInBurst();
+      else scheduleRound();
     },
     result() {
       return finished;

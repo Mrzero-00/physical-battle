@@ -12,7 +12,9 @@ export interface RunRecord {
 export const RECENT_LIMIT = 10;
 export const MIN_HUMAN_MS = 100;
 
-const keyFor = (gameId: string) => `pb:records:${gameId}`;
+export const RECORDS_VERSION = 2;
+
+export const recordsKey = (gameId: string) => `pb:records:v${RECORDS_VERSION}:${gameId}`;
 
 function isValidMs(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= MIN_HUMAN_MS;
@@ -42,7 +44,7 @@ interface StoredRecords {
 }
 
 function load(storage: KeyValueStorage, gameId: string): StoredRecords {
-  const raw = storage.get(keyFor(gameId));
+  const raw = storage.get(recordsKey(gameId));
   if (!raw) return { recent: [], best: null };
   try {
     const parsed = JSON.parse(raw) as Partial<StoredRecords>;
@@ -60,7 +62,7 @@ export function addRecord(storage: KeyValueStorage, record: RunRecord): { saved:
   const recent = [record, ...current.recent].slice(0, RECENT_LIMIT);
   const isNewBest = current.best === null || compareRecords(record, current.best) < 0;
   const best = isNewBest ? record : current.best;
-  storage.set(keyFor(record.gameId), JSON.stringify({ recent, best }));
+  storage.set(recordsKey(record.gameId), JSON.stringify({ recent, best }));
   return { saved: true, isNewBest };
 }
 

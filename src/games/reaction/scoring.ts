@@ -1,7 +1,11 @@
 // 반응속도 테스트 판정·난이도 순수 함수
 export const START_LIMIT_MS = 1000;
 export const MIN_LIMIT_MS = 100;
-export const LIMIT_DECAY = 0.95;
+export const LIMIT_STEP_RATIO = 0.1;
+export const MIN_LIMIT_STEP_MS = 50;
+export const MAX_BURST = 4;
+export const MIN_CENTER_GAP = 108;
+const POSITION_ATTEMPTS = 8;
 export const DELAY_MIN_MS = 600;
 export const DELAY_MAX_MS = 1800;
 export const MIN_HUMAN_MS = 100;
@@ -48,9 +52,46 @@ export interface RunSummary {
   endReason: EndReason;
 }
 
+export function nextLimit(limitMs: number): number {
+  const step = Math.max(MIN_LIMIT_STEP_MS, Math.round(limitMs * LIMIT_STEP_RATIO));
+  return Math.max(MIN_LIMIT_MS, limitMs - step);
+}
+
 export function timeLimitFor(round: number): number {
-  const n = Math.max(1, Math.floor(round));
-  return Math.max(MIN_LIMIT_MS, Math.round(START_LIMIT_MS * LIMIT_DECAY ** (n - 1)));
+  const n = Number.isInteger(round) && round >= 1 ? round : 1;
+  let limit = START_LIMIT_MS;
+  for (let r = 1; r < n && limit > MIN_LIMIT_MS; r++) limit = nextLimit(limit);
+  return limit;
+}
+
+export function burstSizeFor(round: number): number {
+  if (round >= 11) return MAX_BURST;
+  if (round >= 8) return 3;
+  if (round >= 5) return 2;
+  return 1;
+}
+
+export interface Progress {
+  round: number;
+  index: number;
+}
+
+export type Advance =
+  | { kind: 'over' }
+  | { kind: 'next-button'; round: number; index: number }
+  | { kind: 'next-round'; round: number; index: number };
+
+export function advance(progress: Progress, judgement: Judgement): Advance {
+  if (judgement.kind !== 'hit') return { kind: 'over' };
+  if (progress.index + 1 < burstSizeFor(progress.round)) {
+    return { kind: 'next-button', round: progress.round, index: progress.index + 1 };
+  }
+  return { kind: 'next-round', round: progress.round + 1, index: 0 };
+}
+
+export function burstLabel(round: number, index: number): string {
+  const size = burstSizeFor(round);
+  return size === 1 ? '' : `${index + 1}/${size}`;
 }
 
 export function pickDelay(rng: () => number): number {
@@ -69,6 +110,34 @@ export function randomPosition(rng: () => number, viewport: Viewport, size: numb
     x: Math.round(minX + rx * (maxX - minX)),
     y: Math.round(minY + ry * (maxY - minY)),
   };
+}
+
+const centerDistance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+
+export function randomPositionAwayFrom(
+  rng: () => number,
+  viewport: Viewport,
+  size: number,
+  margin: Insets,
+  prev: Point | null,
+  minGap: number,
+): Point {
+  if (prev === null) return randomPosition(rng, viewport, size, margin);
+  for (let i = 0; i < POSITION_ATTEMPTS; i++) {
+    const candidate = randomPosition(rng, viewport, size, margin);
+    if (centerDistance(candidate, prev) >= minGap) return candidate;
+  }
+  const minX = margin.left;
+  const minY = margin.top;
+  const maxX = Math.max(minX, viewport.width - margin.right - size);
+  const maxY = Math.max(minY, viewport.height - margin.bottom - size);
+  const corners: Point[] = [
+    { x: minX, y: minY },
+    { x: maxX, y: minY },
+    { x: minX, y: maxY },
+    { x: maxX, y: maxY },
+  ];
+  return corners.reduce((far, c) => (centerDistance(c, prev) > centerDistance(far, prev) ? c : far));
 }
 
 export function isHit(point: Point, rect: Rect): boolean {
@@ -92,18 +161,24 @@ export function judgeTap(shownAt: number | null, tapAt: number, limitMs: number,
 export function summarizeRun(results: readonly Judgement[]): RunSummary {
   const hits: number[] = [];
   let endReason: EndReason = 'none';
+  let rounds = 0;
+  let inRound = 0;
   for (const result of results) {
-    if (result.kind === 'hit') {
-      hits.push(result.ms);
-      continue;
+    if (result.kind !== 'hit') {
+      endReason = result.kind;
+      break;
     }
-    endReason = result.kind;
-    break;
+    hits.push(result.ms);
+    inRound += 1;
+    if (inRound === burstSizeFor(rounds + 1)) {
+      rounds += 1;
+      inRound = 0;
+    }
   }
   if (hits.length === 0) return { rounds: 0, avgMs: null, bestMs: null, endReason };
   const total = hits.reduce((sum, ms) => sum + ms, 0);
   return {
-    rounds: hits.length,
+    rounds,
     avgMs: Math.round(total / hits.length),
     bestMs: Math.round(Math.min(...hits)),
     endReason,
