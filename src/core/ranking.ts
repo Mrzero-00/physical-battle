@@ -1,5 +1,18 @@
 // 전체 랭킹 점수 인코딩·제출 검증·닉네임 규칙 (클라이언트·서버 공용)
-export const RANKED_GAME_IDS = ['reaction', 'vision'] as const;
+import { DEFAULT_LABELS, type ScoreLabels } from './labels';
+
+export const RANKED_GAME_IDS = [
+  'reaction',
+  'vision',
+  'gonogo',
+  'timing',
+  'flash',
+  'peripheral',
+  'tapspeed',
+  'stroop',
+  'mot',
+  'balance',
+] as const;
 export const MAX_ROUNDS = 999;
 export const MIN_MS = 100;
 export const MAX_AVG_MS = 99999;
@@ -11,6 +24,7 @@ export const TOP_LIMIT = 100;
 
 const PLAYER_ID = /^(toss|web):[A-Za-z0-9+/=_-]{8,128}$/;
 const NICKNAME_CHARS = /^[가-힣A-Za-z0-9 _-]+$/;
+const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 export interface Submission {
   gameId: string;
@@ -32,8 +46,38 @@ export type SubmissionError =
 
 export type NicknameError = 'too-short' | 'too-long' | 'invalid-char' | 'blocked';
 
-export function encodeScore(rounds: number, avgMs: number): number {
-  const avg = Math.min(MAX_AVG_MS, Math.max(MIN_MS, Math.round(avgMs)));
+export interface ScoreRule {
+  maxRounds: number;
+  minAvg: number;
+  maxAvg: number;
+  minBest: number;
+  minIntervalMs?: number;
+}
+
+export const DEFAULT_RULE: ScoreRule = { maxRounds: MAX_ROUNDS, minAvg: MIN_MS, maxAvg: MAX_AVG_MS, minBest: MIN_MS };
+
+export const SCORE_RULES: Record<string, ScoreRule> = {
+  timing: { maxRounds: MAX_ROUNDS, minAvg: 0, maxAvg: 120, minBest: 0 },
+  tapspeed: { maxRounds: 248, minAvg: 100, maxAvg: 10000, minBest: 40, minIntervalMs: 40 },
+};
+
+export function ruleFor(gameId?: string): ScoreRule {
+  return (gameId && SCORE_RULES[gameId]) || DEFAULT_RULE;
+}
+
+export type ScoreError = 'invalid-rounds' | 'invalid-avg' | 'invalid-best';
+
+export function checkScore(gameId: string, rounds: unknown, avgMs: unknown, bestMs: unknown): ScoreError | null {
+  const rule = ruleFor(gameId);
+  if (!Number.isInteger(rounds) || (rounds as number) < 1 || (rounds as number) > rule.maxRounds) return 'invalid-rounds';
+  if (!isFiniteNumber(avgMs) || avgMs < rule.minAvg || avgMs > rule.maxAvg) return 'invalid-avg';
+  if (!isFiniteNumber(bestMs) || bestMs < rule.minBest || bestMs > avgMs) return 'invalid-best';
+  if (rule.minIntervalMs && (rounds as number) > 1 + Math.floor((avgMs - MIN_MS) / rule.minIntervalMs)) return 'invalid-rounds';
+  return null;
+}
+
+export function encodeScore(rounds: number, avgMs: number, gameId?: string): number {
+  const avg = Math.min(MAX_AVG_MS, Math.max(ruleFor(gameId).minAvg, Math.round(avgMs)));
   return rounds * SCORE_BASE + (MAX_AVG_MS - avg);
 }
 
@@ -65,7 +109,6 @@ export function sanitizeNickname(raw: string, fallback: string): string {
   return [...clipped].length >= NICKNAME_MIN ? clipped : fallback;
 }
 
-const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 export function validateSubmission(
   body: unknown,
@@ -77,11 +120,8 @@ export function validateSubmission(
     return { ok: false, error: 'invalid-game' };
   }
   if (typeof b.playerId !== 'string' || !PLAYER_ID.test(b.playerId)) return { ok: false, error: 'invalid-player' };
-  if (!Number.isInteger(b.rounds) || (b.rounds as number) < 1 || (b.rounds as number) > MAX_ROUNDS) {
-    return { ok: false, error: 'invalid-rounds' };
-  }
-  if (!isFiniteNumber(b.avgMs) || b.avgMs < MIN_MS || b.avgMs > MAX_AVG_MS) return { ok: false, error: 'invalid-avg' };
-  if (!isFiniteNumber(b.bestMs) || b.bestMs < MIN_MS || b.bestMs > b.avgMs) return { ok: false, error: 'invalid-best' };
+  const scoreError = checkScore(b.gameId, b.rounds, b.avgMs, b.bestMs);
+  if (scoreError) return { ok: false, error: scoreError };
   const nickname = validateNickname(b.nickname, options);
   if (!nickname.ok) return nickname;
   return {
@@ -91,8 +131,8 @@ export function validateSubmission(
       playerId: b.playerId,
       nickname: nickname.value,
       rounds: b.rounds as number,
-      avgMs: b.avgMs,
-      bestMs: b.bestMs,
+      avgMs: b.avgMs as number,
+      bestMs: b.bestMs as number,
     },
   };
 }
@@ -113,13 +153,15 @@ export interface BestLike {
 export function bestComparisonText(
   current: { rounds: number; avgMs: number | null },
   previousBest: BestLike | null,
+  gameId?: string,
+  labels: Pick<ScoreLabels, 'roundsWord' | 'compareAvg'> = DEFAULT_LABELS,
 ): string | null {
   if (current.rounds < 1 || current.avgMs === null || !Number.isFinite(current.avgMs)) return null;
   if (previousBest === null) return '첫 기록이에요';
-  const now = encodeScore(current.rounds, current.avgMs);
-  const before = encodeScore(previousBest.rounds, previousBest.avgMs);
+  const now = encodeScore(current.rounds, current.avgMs, gameId);
+  const before = encodeScore(previousBest.rounds, previousBest.avgMs, gameId);
   if (now > before) return '최고 기록 경신!';
-  if (current.rounds < previousBest.rounds) return `최고 기록까지 ${previousBest.rounds - current.rounds}라운드`;
+  if (current.rounds < previousBest.rounds) return `최고 기록까지 ${previousBest.rounds - current.rounds}${labels.roundsWord}`;
   const gap = Math.max(0, Math.round(current.avgMs) - Math.round(previousBest.avgMs));
-  return `최고 기록과 같은 라운드 · 평균 +${gap}ms`;
+  return `최고 기록과 같은 ${labels.roundsWord} · ${labels.compareAvg} +${gap}ms`;
 }

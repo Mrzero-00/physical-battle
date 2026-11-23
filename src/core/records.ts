@@ -1,5 +1,6 @@
 // 기기 저장 기록 관리 (최근 기록·최고 기록)
 import type { KeyValueStorage } from '../platform';
+import { checkScore } from './ranking';
 
 export interface RunRecord {
   gameId: string;
@@ -16,19 +17,11 @@ export const RECORDS_VERSION = 3;
 
 export const recordsKey = (gameId: string) => `pb:records:v${RECORDS_VERSION}:${gameId}`;
 
-function isValidMs(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= MIN_HUMAN_MS;
-}
-
 export function isValidRecord(record: RunRecord): boolean {
   return (
     typeof record.gameId === 'string' &&
     record.gameId.length > 0 &&
-    Number.isInteger(record.rounds) &&
-    record.rounds >= 1 &&
-    isValidMs(record.avgMs) &&
-    isValidMs(record.bestMs) &&
-    record.bestMs <= record.avgMs &&
+    checkScore(record.gameId, record.rounds, record.avgMs, record.bestMs) === null &&
     Number.isFinite(record.at)
   );
 }

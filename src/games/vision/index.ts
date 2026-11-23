@@ -228,5 +228,6 @@ export const visionGame: GameModule = {
   id: 'vision',
   title: '동체시력',
   description: '날아가는 공에 적힌 숫자를 읽어 맞히세요. 라운드마다 더 빠르고 작아집니다.',
+  labels: { avgLabel: '평균 판단', bestLabel: '최고 판단' },
   create: createVisionGame,
 };

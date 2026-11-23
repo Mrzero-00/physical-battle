@@ -127,7 +127,7 @@ export function createRankingService(options: ServiceOptions) {
       if (!rateLimitDecision(count)) return json(429, { error: 'rate-limited' }, origin);
 
       const key = rankKey(s.gameId);
-      const score = encodeScore(s.rounds, s.avgMs);
+      const score = encodeScore(s.rounds, s.avgMs, s.gameId);
       const previous = await store.zscore(key, s.playerId);
       const improved = previous === null || score > previous;
       if (improved) {

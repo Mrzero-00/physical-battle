@@ -152,4 +152,12 @@ describe('ranking service', () => {
     const reaction = await (await svc.handle(get('gameId=reaction'))).json();
     expect(reaction.total).toBe(1);
   });
+
+  it('timing·tapspeed는 게임별 규칙으로 받는다', async () => {
+    const { svc } = setup();
+    expect((await svc.handle(post(submission({ gameId: 'timing', playerId: 'web:timing-player', avgMs: 12, bestMs: 0 })))).status).toBe(200);
+    expect((await svc.handle(post(submission({ gameId: 'tapspeed', playerId: 'web:tap-player-1', rounds: 80, avgMs: 9800, bestMs: 60 })))).status).toBe(200);
+    expect((await svc.handle(post(submission({ gameId: 'tapspeed', playerId: 'web:tap-player-2', rounds: 249, avgMs: 10000, bestMs: 40 })))).status).toBe(400);
+    expect((await svc.handle(post(submission({ gameId: 'timing', playerId: 'web:timing-player2', avgMs: 121, bestMs: 10 })))).status).toBe(400);
+  });
 });

@@ -6,12 +6,12 @@ import { bestComparisonText, RANKED_GAME_IDS } from '../core/ranking';
 import { addRecord, getBest, type RunRecord } from '../core/records';
 import { SITE_URL, shareText } from '../core/share';
 import { loadSkin } from '../core/skins';
-import { findGame, games } from '../games/registry';
+import { findGame, games, labelsFor } from '../games/registry';
 import type { GameInstance, GameResult } from '../games/types';
 import type { PlatformAdapter, SubmitOutcome } from '../platform';
 import { openCoinSheet, type AdReward } from './coin-sheet';
 import { renderCoinScreen } from './coins';
-import { createGameTabs } from './game-tabs';
+import { createGameTabs, resolveGameId } from './game-tabs';
 import { el, readSafeInsets } from './dom';
 import { renderGlobalRanking } from './global-ranking';
 import { clearSubmittedMarker, syncGlobalRanking } from './global-status';
@@ -32,7 +32,8 @@ function rankingClientFor(platform: PlatformAdapter): RankingClient {
 export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
   const coinsEnabled = platform.name !== 'web';
   const client = rankingClientFor(platform);
-  const defaultGame = games[0].id;
+  let lastGameId: string | null = null;
+  const pickGame = (requested?: string) => resolveGameId(games, requested ?? lastGameId);
   let current: GameInstance | null = null;
 
   const readCoins = (): CoinState => {
@@ -85,7 +86,8 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
 
   const gameTitle = (gameId: string) => findGame(gameId)?.title ?? gameId;
 
-  function showRecords(gameId: string = defaultGame) {
+  function showRecords(requested?: string) {
+    const gameId = pickGame(requested);
     stopGame();
     renderRecords(root, {
       topBar: topBar('내 기록', showHome),
@@ -93,16 +95,19 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
       storage: platform.storage,
       gameId,
       gameTitle: gameTitle(gameId),
+      labels: labelsFor(findGame(gameId)),
       onRanking: () => showRanking(gameId),
     });
   }
 
-  function showRanking(gameId: string = defaultGame) {
+  function showRanking(requested?: string) {
+    const gameId = pickGame(requested);
     stopGame();
     renderGlobalRanking(root, {
       topBar: topBar('전체 랭킹', showHome),
       tabs: createGameTabs(games, gameId, showRanking),
       showTossLeaderboard: usesTossLeaderboard(gameId),
+      labels: labelsFor(findGame(gameId)),
       platform,
       client,
       gameId,
@@ -157,7 +162,9 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
       }
     }
     const best = getBest(platform.storage, gameId);
-    const comparison = bestComparisonText({ rounds: result.rounds, avgMs: result.avgMs }, previousBest);
+    const labels = labelsFor(findGame(gameId));
+    lastGameId = gameId;
+    const comparison = bestComparisonText({ rounds: result.rounds, avgMs: result.avgMs }, previousBest, gameId, labels);
     const finishedGame = current;
     window.setTimeout(() => {
       if (current !== finishedGame) return;
@@ -172,7 +179,7 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
             comparison,
             coinsEnabled,
             platformName: platform.name,
-            statLabels: gameId === 'vision' ? { avg: '평균 판단', best: '최고 판단' } : { avg: '평균 반응', best: '최고 반응' },
+            labels,
             toss: { available, submission, leaderboard: platform.leaderboard },
             global: () => syncGlobalRanking(platform, client, gameId),
           },
@@ -181,7 +188,7 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
             onHome: showHome,
             onRanking: () => showRanking(gameId),
             onNickname: (retry) => editNickname(retry),
-            onShare: () => platform.share(shareText(gameTitle(gameId), result.rounds, result.avgMs)),
+            onShare: () => platform.share(shareText(gameTitle(gameId), result.rounds, result.avgMs, SITE_URL, labels)),
           },
         );
     }, 600);

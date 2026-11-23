@@ -2,6 +2,11 @@
 import type { GameModule } from '../games/types';
 import { el } from './dom';
 
+export function resolveGameId(visible: readonly { id: string }[], requested: string | null | undefined): string {
+  if (requested && visible.some((g) => g.id === requested)) return requested;
+  return visible[0]?.id ?? '';
+}
+
 export function createGameTabs(list: readonly GameModule[], selected: string, onSelect: (gameId: string) => void): HTMLElement {
   const bar = el('div', 'game-tabs');
   bar.setAttribute('role', 'tablist');
@@ -16,5 +21,9 @@ export function createGameTabs(list: readonly GameModule[], selected: string, on
     });
     bar.appendChild(tab);
   }
+  queueMicrotask(() => {
+    const current = bar.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (current && bar.isConnected && typeof current.scrollIntoView === 'function') current.scrollIntoView({ inline: 'center', block: 'nearest' });
+  });
   return bar;
 }

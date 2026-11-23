@@ -2,7 +2,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   bestComparisonText,
+  checkScore,
   decodeScore,
+  RANKED_GAME_IDS,
+  ruleFor,
   encodeScore,
   rateLimitDecision,
   sanitizeNickname,
@@ -147,5 +150,46 @@ describe('ranked games', () => {
   it('vision은 허용, dynamic-vision은 거부', () => {
     expect(validateSubmission(body({ gameId: 'vision', avgMs: 820, bestMs: 500 })).ok).toBe(true);
     expect(validateSubmission(body({ gameId: 'dynamic-vision' }))).toEqual({ ok: false, error: 'invalid-game' });
+  });
+});
+
+describe('per-game score rules', () => {
+  it('모든 랭킹 게임에 규칙이 있다', () => {
+    for (const id of RANKED_GAME_IDS) expect(ruleFor(id).maxRounds).toBeGreaterThan(0);
+  });
+
+  it('timing은 평균 오차 0~120ms', () => {
+    expect(checkScore('timing', 5, 0, 0)).toBeNull();
+    expect(checkScore('timing', 5, 120, 10)).toBeNull();
+    expect(checkScore('timing', 5, 121, 10)).toBe('invalid-avg');
+    expect(validateSubmission(body({ gameId: 'timing', avgMs: 12, bestMs: 0 })).ok).toBe(true);
+  });
+
+  it('tapspeed는 최소 간격 40ms·최대 248회·간격 일관성', () => {
+    expect(checkScore('tapspeed', 80, 9800, 40)).toBeNull();
+    expect(checkScore('tapspeed', 80, 9800, 39)).toBe('invalid-best');
+    expect(checkScore('tapspeed', 249, 10000, 40)).toBe('invalid-rounds');
+    expect(checkScore('tapspeed', 100, 2000, 40)).toBe('invalid-rounds');
+  });
+
+  it('반응속도는 기존 규칙 그대로', () => {
+    expect(checkScore('reaction', 5, 99, 99)).toBe('invalid-avg');
+    expect(checkScore('reaction', 5, 200, 150)).toBeNull();
+  });
+
+  it('encodeScore는 gameId가 없거나 reaction이면 같은 값', () => {
+    expect(encodeScore(12, 210)).toBe(encodeScore(12, 210, 'reaction'));
+    expect(encodeScore(12, 5, 'timing')).toBeGreaterThan(encodeScore(12, 30, 'timing'));
+    expect(decodeScore(encodeScore(12, 5, 'timing'))).toEqual({ rounds: 12, avgMs: 5 });
+  });
+
+  it('비교 문구는 게임 라벨을 쓰고 반응속도 문구는 그대로', () => {
+    expect(bestComparisonText({ rounds: 6, avgMs: 200 }, { rounds: 8, avgMs: 150 })).toBe('최고 기록까지 2라운드');
+    expect(bestComparisonText({ rounds: 80, avgMs: 9900 }, { rounds: 85, avgMs: 9800 }, 'tapspeed', { roundsWord: '회', compareAvg: '마지막 탭' })).toBe(
+      '최고 기록까지 5회',
+    );
+    expect(bestComparisonText({ rounds: 85, avgMs: 9900 }, { rounds: 85, avgMs: 9800 }, 'tapspeed', { roundsWord: '회', compareAvg: '마지막 탭' })).toBe(
+      '최고 기록과 같은 회 · 마지막 탭 +100ms',
+    );
   });
 });

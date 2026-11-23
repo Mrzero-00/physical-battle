@@ -1,4 +1,5 @@
 // 게임 결과 화면 (최고 기록 비교·랭킹 카드·공유)
+import { formatMs, type ScoreLabels } from '../core/labels';
 import { submitOutcomeMessage } from '../core/leaderboard';
 import type { GameResult } from '../games/types';
 import type { LeaderboardPort, ShareOutcome, SubmitOutcome } from '../platform';
@@ -11,6 +12,10 @@ const END_REASON: Record<string, string> = {
   miss: '버튼을 빗나감',
   'false-start': '너무 빨리 누름 (부정출발)',
   wrong: '오답',
+  'no-go-tap': '빨간 신호를 누름',
+  'off-timing': '타이밍이 벗어남',
+  'time-up': '시간 종료',
+  'off-path': '공이 길 밖으로 떨어짐',
   none: '종료',
 };
 
@@ -29,7 +34,7 @@ export interface ResultView {
   comparison: string | null;
   coinsEnabled: boolean;
   platformName: 'web' | 'apps-in-toss' | 'mock';
-  statLabels: { avg: string; best: string };
+  labels: ScoreLabels;
   toss: { available: Promise<boolean>; submission: Promise<SubmitOutcome> | null; leaderboard: LeaderboardPort };
   global: () => Promise<GlobalStatus>;
 }
@@ -49,7 +54,7 @@ export function renderResult(root: HTMLElement, view: ResultView, actions: Resul
   box.append(
     el('p', 'result-reason', END_REASON[result.endReason] ?? result.endReason),
     el('p', 'result-rounds', `${result.rounds}`),
-    el('p', 'result-rounds-label', '라운드 성공'),
+    el('p', 'result-rounds-label', view.labels.roundsLabel),
   );
   if (isNewBest) box.appendChild(el('p', 'result-badge', '신기록!'));
   if (view.comparison) box.appendChild(el('p', 'result-compare', view.comparison));
@@ -60,9 +65,9 @@ export function renderResult(root: HTMLElement, view: ResultView, actions: Resul
     row.append(el('dt', '', label), el('dd', '', value));
     stats.appendChild(row);
   };
-  stat(view.statLabels.avg, result.avgMs === null ? '-' : `${result.avgMs}ms`);
-  stat(view.statLabels.best, result.bestMs === null ? '-' : `${result.bestMs}ms`);
-  stat('개인 최고', bestRounds === null ? '-' : `${bestRounds}R`);
+  stat(view.labels.avgLabel, result.avgMs === null ? '-' : formatMs(result.avgMs, view.labels));
+  stat(view.labels.bestLabel, result.bestMs === null ? '-' : formatMs(result.bestMs, view.labels));
+  stat('개인 최고', bestRounds === null ? '-' : `${bestRounds}${view.labels.roundsUnit}`);
   box.appendChild(stats);
 
   const card = el('section', 'result-ranking');

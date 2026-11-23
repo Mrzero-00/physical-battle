@@ -1,6 +1,6 @@
 // 홈 화면 (미니게임 목록·최고 기록·내 기록·전체 랭킹)
 import { getBest } from '../core/records';
-import { comingSoon, games } from '../games/registry';
+import { comingSoon, games, labelsFor } from '../games/registry';
 import type { PlatformAdapter } from '../platform';
 import { el } from './dom';
 import { rankingButton } from './ranking';
@@ -32,7 +32,7 @@ export function renderHome(root: HTMLElement, options: HomeOptions): void {
     info.append(el('span', 'game-title', game.title), el('span', 'game-desc', game.description));
     if (coinsEnabled) info.appendChild(el('span', 'game-cost', '1코인'));
     const record = el('div', 'game-best');
-    record.append(el('span', 'game-best-label', '최고'), el('span', 'game-best-value', best ? `${best.rounds}R` : '-'));
+    record.append(el('span', 'game-best-label', '최고'), el('span', 'game-best-value', best ? `${best.rounds}${labelsFor(game).roundsUnit}` : '-'));
     card.append(info, record);
     card.addEventListener('click', () => onPlay(game.id));
     item.appendChild(card);

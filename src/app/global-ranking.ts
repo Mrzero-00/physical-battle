@@ -1,4 +1,5 @@
 // 전체 랭킹 화면 (TOP 100·내 순위)
+import { formatMs, type ScoreLabels } from '../core/labels';
 import type { PlatformAdapter } from '../platform';
 import { el } from './dom';
 import type { Board, RankingClient } from './ranking-client';
@@ -8,6 +9,7 @@ export interface GlobalRankingOptions {
   topBar: HTMLElement;
   tabs: HTMLElement;
   showTossLeaderboard: boolean;
+  labels: ScoreLabels;
   platform: PlatformAdapter;
   client: RankingClient;
   gameId: string;
@@ -22,9 +24,9 @@ const FAILURE_TEXT: Record<string, string> = {
   error: '랭킹을 불러올 수 없어요',
 };
 
-function renderBoard(board: Board): HTMLElement {
+function renderBoard(board: Board, labels: ScoreLabels): HTMLElement {
   const wrap = el('div', 'rank-board');
-  const mine = el('p', 'my-rank', board.me ? `내 순위 ${board.me.rank}위 · ${board.me.rounds}R · 평균 ${board.me.avgMs}ms` : '아직 내 기록이 없어요');
+  const mine = el('p', 'my-rank', board.me ? `내 순위 ${board.me.rank}위 · ${board.me.rounds}${labels.roundsUnit} · ${labels.avgLabel} ${formatMs(board.me.avgMs, labels)}` : '아직 내 기록이 없어요');
   wrap.appendChild(mine);
   wrap.appendChild(el('p', 'rank-total', `참여 ${board.total}명`));
   if (board.top.length === 0) {
@@ -37,8 +39,8 @@ function renderBoard(board: Board): HTMLElement {
     item.append(
       el('span', 'rank-no', String(row.rank)),
       el('span', 'rank-name', row.nickname),
-      el('span', 'rank-rounds', `${row.rounds}R`),
-      el('span', 'rank-avg', `${row.avgMs}ms`),
+      el('span', 'rank-rounds', `${row.rounds}${labels.roundsUnit}`),
+      el('span', 'rank-avg', formatMs(row.avgMs, labels)),
     );
     if (row.isMe) item.setAttribute('aria-current', 'true');
     list.appendChild(item);
@@ -75,7 +77,7 @@ export function renderGlobalRanking(root: HTMLElement, options: GlobalRankingOpt
       return;
     }
     status.textContent = '';
-    content.appendChild(renderBoard(res.data));
+    content.appendChild(renderBoard(res.data, options.labels));
     const mine = content.querySelector('.is-me');
     if (mine instanceof HTMLElement) mine.scrollIntoView({ block: 'center' });
   };

@@ -76,4 +76,10 @@ describe('records', () => {
     expect(getRecent(s, 'reaction')).toHaveLength(0);
     expect(getBest(s, 'vision')?.rounds).toBe(9);
   });
+
+  it('게임별 규칙으로 검증한다', () => {
+    const s = memory();
+    expect(addRecord(s, { gameId: 'timing', rounds: 7, avgMs: 12, bestMs: 0, at: 1 }).saved).toBe(true);
+    expect(addRecord(s, { gameId: 'reaction', rounds: 7, avgMs: 50, bestMs: 40, at: 1 }).saved).toBe(false);
+  });
 });

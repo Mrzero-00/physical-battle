@@ -1,4 +1,5 @@
 // 피지컬 테스트 미니게임 공통 인터페이스
+import type { ScoreLabels } from '../core/labels';
 import type { SkinId } from '../core/skins';
 import type { KeyValueStorage } from '../platform';
 
@@ -36,5 +37,6 @@ export interface GameModule {
   id: string;
   title: string;
   description: string;
+  labels?: Partial<ScoreLabels>;
   create(ctx: GameContext): GameInstance;
 }

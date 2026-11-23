@@ -1,4 +1,5 @@
 // 내 기록 화면 (최고 기록·최근 10판)
+import { formatMs, type ScoreLabels } from '../core/labels';
 import { getBest, getRecent, type RunRecord } from '../core/records';
 import type { KeyValueStorage } from '../platform';
 import { el } from './dom';
@@ -16,11 +17,12 @@ export interface RecordsOptions {
   storage: KeyValueStorage;
   gameId: string;
   gameTitle: string;
+  labels: ScoreLabels;
   onRanking(): void;
 }
 
-function recordLine(r: RunRecord): string {
-  return `${r.rounds}R · 평균 ${Math.round(r.avgMs)}ms · ${formatRecordDate(r.at)}`;
+function recordLine(r: RunRecord, labels: ScoreLabels): string {
+  return `${r.rounds}${labels.roundsUnit} · ${labels.avgLabel} ${formatMs(r.avgMs, labels)} · ${formatRecordDate(r.at)}`;
 }
 
 export function renderRecords(root: HTMLElement, options: RecordsOptions): void {
@@ -32,8 +34,8 @@ export function renderRecords(root: HTMLElement, options: RecordsOptions): void 
   card.appendChild(el('p', 'best-label', `${options.gameTitle} 최고 기록`));
   if (best) {
     card.append(
-      el('p', 'best-rounds', `${best.rounds}R`),
-      el('p', 'best-meta', `평균 ${Math.round(best.avgMs)}ms · 최고 ${Math.round(best.bestMs)}ms · ${formatRecordDate(best.at)}`),
+      el('p', 'best-rounds', `${best.rounds}${options.labels.roundsUnit}`),
+      el('p', 'best-meta', `${options.labels.avgLabel} ${formatMs(best.avgMs, options.labels)} · ${options.labels.bestLabel} ${formatMs(best.bestMs, options.labels)} · ${formatRecordDate(best.at)}`),
     );
   } else {
     card.appendChild(el('p', 'best-empty', '아직 기록이 없어요'));
@@ -45,7 +47,7 @@ export function renderRecords(root: HTMLElement, options: RecordsOptions): void 
     section.appendChild(el('p', 'section-empty', '한 판 플레이하면 여기에 쌓여요'));
   } else {
     const list = el('ol', 'recent-list');
-    for (const r of recent) list.appendChild(el('li', 'recent-row', recordLine(r)));
+    for (const r of recent) list.appendChild(el('li', 'recent-row', recordLine(r, options.labels)));
     section.appendChild(list);
   }
 

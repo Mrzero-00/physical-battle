@@ -23,7 +23,7 @@ export async function syncGlobalRanking(platform: PlatformAdapter, client: Ranki
   if (identity.needsNickname) return { kind: 'needs-nickname' };
   const best = getBest(platform.storage, gameId);
   if (!best) return { kind: 'no-record' };
-  const score = encodeScore(best.rounds, best.avgMs);
+  const score = encodeScore(best.rounds, best.avgMs, gameId);
   const raw = Number(platform.storage.get(submittedKey(gameId)) ?? '');
   const last = Number.isFinite(raw) && raw > 0 ? raw : null;
 

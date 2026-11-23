@@ -46,7 +46,7 @@ export function createFakeRankingClient(storage: KeyValueStorage): RankingClient
     }
     const seeded: Record<string, StoredEntry> = {};
     (BOTS[gameId] ?? REACTION_BOTS).forEach(([nickname, rounds, avg], i) => {
-      seeded[`web:bot-000${i}`] = { nickname, score: encodeScore(rounds, avg) };
+      seeded[`web:bot-000${i}`] = { nickname, score: encodeScore(rounds, avg, gameId) };
     });
     return seeded;
   };
@@ -59,7 +59,7 @@ export function createFakeRankingClient(storage: KeyValueStorage): RankingClient
       const checked = validateSubmission(submission);
       if (!checked.ok) return { kind: 'invalid' };
       const entries = load(checked.value.gameId);
-      const score = encodeScore(checked.value.rounds, checked.value.avgMs);
+      const score = encodeScore(checked.value.rounds, checked.value.avgMs, checked.value.gameId);
       const previous = entries[checked.value.playerId]?.score ?? null;
       const improved = previous === null || score > previous;
       entries[checked.value.playerId] = { nickname: checked.value.nickname, score: improved ? score : (previous as number) };
