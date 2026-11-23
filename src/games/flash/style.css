@@ -1,0 +1,134 @@
+.flash-area {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #10131a;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.flash-area[data-phase='over'] {
+  background: #2a1416;
+}
+
+.flash-board {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px calc(16px + var(--safe-right)) 16px calc(16px + var(--safe-left));
+  pointer-events: none;
+}
+
+.flash-digits {
+  margin: 0;
+  min-height: 48px;
+  max-width: 100%;
+  font-size: clamp(26px, 8vw, 40px);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.18em;
+  line-height: 48px;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.flash-digits.is-answer {
+  font-size: clamp(20px, 6vw, 28px);
+  color: var(--accent);
+}
+
+.flash-slots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  min-height: 14px;
+}
+
+.flash-slot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #3a4256;
+}
+
+.flash-slot.is-filled {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.flash-hint {
+  margin: 0;
+  min-height: 24px;
+  text-align: center;
+  font-size: 18px;
+  color: var(--muted);
+}
+
+.flash-area[data-phase='over'] .flash-hint {
+  color: var(--danger);
+}
+
+.flash-keypad {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(4, 60px);
+  gap: 10px;
+  padding: 16px calc(16px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(16px + var(--safe-left));
+  background: var(--bg);
+  border-top: 1px solid #1d2230;
+}
+
+.flash-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--surface-2);
+  font-size: 26px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 120ms ease-out, opacity 120ms ease-out;
+}
+
+.flash-key.is-blank {
+  background: transparent;
+}
+
+.flash-keypad.is-disabled .flash-key {
+  opacity: 0.4;
+}
+
+.flash-key.is-correct {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.flash-key.is-wrong {
+  background: var(--danger);
+  color: #fff;
+}
+
+@media (max-height: 700px) {
+  .flash-keypad {
+    grid-template-rows: repeat(4, 52px);
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash-key {
+    transition: none;
+    animation: none;
+  }
+}

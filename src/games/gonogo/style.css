@@ -1,0 +1,61 @@
+.gonogo-area {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  background: radial-gradient(circle at 50% 40%, #171c27 0%, var(--bg) 75%);
+}
+
+.gonogo-signal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  color: #fff;
+  font-size: 40px;
+  font-weight: 900;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gonogo-signal.visible {
+  opacity: 1;
+}
+
+.gonogo-signal.is-go {
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 24px rgba(34, 197, 94, 0.55);
+}
+
+.gonogo-signal.is-nogo {
+  border-radius: 10px;
+  background: #e5484d;
+  box-shadow: 0 0 24px rgba(229, 72, 77, 0.55);
+}
+
+.gonogo-hint {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left));
+  text-align: center;
+  font-size: 18px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.gonogo-area[data-phase='over'] .gonogo-hint {
+  color: var(--danger);
+  font-weight: 700;
+}
