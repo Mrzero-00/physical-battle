@@ -1,0 +1,16 @@
+.DS_Store
+node_modules/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.log
+
+# AX 킷 루프 실행 기록 (로컬)
+.ax/runs/
+# 자동 생성되는 엔지니어링 맵 (팀과 공유하려면 이 줄을 지우고 커밋)
+.ax/engineering.html
+
+# 로컬 도구 상태
+.omc/
