@@ -37,13 +37,9 @@ export interface Rect {
   height: number;
 }
 
-export type Judgement =
-  | { kind: 'hit'; ms: number }
-  | { kind: 'false-start' }
-  | { kind: 'miss' }
-  | { kind: 'timeout' };
+export type Judgement = { kind: 'hit'; ms: number } | { kind: 'timeout' } | { kind: 'ignore' };
 
-export type EndReason = Exclude<Judgement['kind'], 'hit'> | 'none';
+export type EndReason = 'timeout' | 'miss' | 'false-start' | 'none';
 
 export interface RunSummary {
   rounds: number;
@@ -91,10 +87,12 @@ export interface Progress {
 
 export type Advance =
   | { kind: 'over' }
+  | { kind: 'stay'; round: number; index: number }
   | { kind: 'next-button'; round: number; index: number }
   | { kind: 'next-round'; round: number; index: number };
 
 export function advance(progress: Progress, judgement: Judgement): Advance {
+  if (judgement.kind === 'ignore') return { kind: 'stay', round: progress.round, index: progress.index };
   if (judgement.kind !== 'hit') return { kind: 'over' };
   if (progress.index + 1 < burstSizeFor(progress.round)) {
     return { kind: 'next-button', round: progress.round, index: progress.index + 1 };
@@ -163,10 +161,10 @@ export function isHit(point: Point, rect: Rect): boolean {
 }
 
 export function judgeTap(shownAt: number | null, tapAt: number, limitMs: number, hit: boolean): Judgement {
-  if (shownAt === null) return { kind: 'false-start' };
-  if (!hit) return { kind: 'miss' };
+  if (shownAt === null) return { kind: 'ignore' };
+  if (!hit) return { kind: 'ignore' };
   const ms = tapAt - shownAt;
-  if (!Number.isFinite(ms) || ms < MIN_HUMAN_MS) return { kind: 'false-start' };
+  if (!Number.isFinite(ms) || ms < MIN_HUMAN_MS) return { kind: 'ignore' };
   if (ms > limitMs) return { kind: 'timeout' };
   return { kind: 'hit', ms };
 }
@@ -177,8 +175,9 @@ export function summarizeRun(results: readonly Judgement[]): RunSummary {
   let rounds = 0;
   let inRound = 0;
   for (const result of results) {
-    if (result.kind !== 'hit') {
-      endReason = result.kind;
+    if (result.kind === 'ignore') continue;
+    if (result.kind === 'timeout') {
+      endReason = 'timeout';
       break;
     }
     hits.push(result.ms);

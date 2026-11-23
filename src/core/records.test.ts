@@ -60,10 +60,11 @@ describe('records', () => {
     expect(addRecord(s, rec(2, 300)).saved).toBe(true);
   });
 
-  it('기록 키는 v2이고 예전 키의 기록은 읽지 않는다', () => {
+  it('기록 키는 v3이고 예전 키의 기록은 읽지 않는다', () => {
     const s = memory();
-    expect(recordsKey('reaction')).toBe('pb:records:v2:reaction');
+    expect(recordsKey('reaction')).toBe('pb:records:v3:reaction');
     s.set('pb:records:reaction', JSON.stringify({ recent: [rec(30, 300)], best: rec(30, 300) }));
+    s.set('pb:records:v2:reaction', JSON.stringify({ recent: [rec(30, 300)], best: rec(30, 300) }));
     expect(getBest(s, 'reaction')).toBeNull();
     expect(getRecent(s, 'reaction')).toHaveLength(0);
   });

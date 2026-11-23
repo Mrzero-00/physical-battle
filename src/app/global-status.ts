@@ -11,7 +11,7 @@ export type GlobalStatus =
   | { kind: 'no-record' }
   | { kind: 'failed'; reason: ApiFailure };
 
-const submittedKey = (gameId: string) => `pb:rank:submitted:${gameId}`;
+export const submittedKey = (gameId: string) => `pb:rank:submitted:v2:${gameId}`;
 
 export function clearSubmittedMarker(platform: PlatformAdapter, gameId: string): void {
   platform.storage.set(submittedKey(gameId), '');

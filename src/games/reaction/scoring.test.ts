@@ -87,9 +87,14 @@ describe('advance', () => {
     expect(advance(progress, hit)).toEqual(expected);
   });
 
-  it.each<Judgement>([{ kind: 'timeout' }, { kind: 'miss' }, { kind: 'false-start' }])('실패 %j는 over', (j) => {
-    expect(advance({ round: 1, index: 0 }, j)).toEqual({ kind: 'over' });
-    expect(advance({ round: 11, index: 2 }, j)).toEqual({ kind: 'over' });
+  it('시간 초과는 over', () => {
+    expect(advance({ round: 1, index: 0 }, { kind: 'timeout' })).toEqual({ kind: 'over' });
+    expect(advance({ round: 11, index: 2 }, { kind: 'timeout' })).toEqual({ kind: 'over' });
+  });
+
+  it('무시한 탭은 진행 그대로(stay)', () => {
+    expect(advance({ round: 1, index: 0 }, { kind: 'ignore' })).toEqual({ kind: 'stay', round: 1, index: 0 });
+    expect(advance({ round: 11, index: 2 }, { kind: 'ignore' })).toEqual({ kind: 'stay', round: 11, index: 2 });
   });
 
   it('hit만 이어 가면 5라운드에서 처음으로 연속 버튼이 나온다', () => {
@@ -204,12 +209,13 @@ describe('isHit', () => {
 });
 
 describe('judgeTap', () => {
-  it('버튼 표시 전 탭은 부정출발', () => {
-    expect(judgeTap(null, 500, 1000, false)).toEqual({ kind: 'false-start' });
+  it('버튼 표시 전 탭은 무시', () => {
+    expect(judgeTap(null, 500, 1000, false)).toEqual({ kind: 'ignore' });
+    expect(judgeTap(null, 500, 1000, true)).toEqual({ kind: 'ignore' });
   });
 
-  it('99ms는 부정출발, 100ms는 성공', () => {
-    expect(judgeTap(1000, 1099, 1000, true)).toEqual({ kind: 'false-start' });
+  it('99ms는 무시, 100ms는 성공', () => {
+    expect(judgeTap(1000, 1099, 1000, true)).toEqual({ kind: 'ignore' });
     expect(judgeTap(1000, 1100, 1000, true)).toEqual({ kind: 'hit', ms: 100 });
   });
 
@@ -218,8 +224,8 @@ describe('judgeTap', () => {
     expect(judgeTap(1000, 1501, 500, true)).toEqual({ kind: 'timeout' });
   });
 
-  it('버튼 밖 탭은 빗나감', () => {
-    expect(judgeTap(1000, 1300, 1000, false)).toEqual({ kind: 'miss' });
+  it('버튼 밖 탭은 무시', () => {
+    expect(judgeTap(1000, 1300, 1000, false)).toEqual({ kind: 'ignore' });
   });
 
   it('최소 제한 시간 100ms에서는 정확히 100ms만 통과한다', () => {
@@ -236,12 +242,22 @@ describe('summarizeRun', () => {
   const hits = (...ms: number[]): Judgement[] => ms.map((m) => ({ kind: 'hit', ms: m }));
 
   it('1~4라운드는 탭 1번이 1라운드다', () => {
-    expect(summarizeRun([...hits(300, 250, 201), { kind: 'miss' }])).toEqual({
+    expect(summarizeRun([...hits(300, 250, 201), { kind: 'timeout' }])).toEqual({
       rounds: 3,
       avgMs: 250,
       bestMs: 201,
-      endReason: 'miss',
+      endReason: 'timeout',
     });
+  });
+
+  it('무시한 탭은 집계에서 빠진다', () => {
+    const withIgnore: Judgement[] = [...hits(300, 250, 201), { kind: 'ignore' }, ...hits(260), { kind: 'timeout' }];
+    expect(summarizeRun(withIgnore)).toEqual(summarizeRun([...hits(300, 250, 201, 260), { kind: 'timeout' }]));
+    expect(summarizeRun(withIgnore).endReason).toBe('timeout');
+  });
+
+  it('무시한 탭만 있으면 라운드 0, 종료 사유 none', () => {
+    expect(summarizeRun([{ kind: 'ignore' }, { kind: 'ignore' }])).toEqual({ rounds: 0, avgMs: null, bestMs: null, endReason: 'none' });
   });
 
   it('5라운드 연속 버튼 중 1개만 맞히면 그 라운드는 세지 않는다', () => {
@@ -254,10 +270,10 @@ describe('summarizeRun', () => {
   });
 
   it('5라운드 버튼 2개를 모두 맞히면 5라운드 통과', () => {
-    expect(summarizeRun([...hits(300, 300, 300, 300, 200, 220), { kind: 'miss' }]).rounds).toBe(5);
+    expect(summarizeRun([...hits(300, 300, 300, 300, 200, 220), { kind: 'timeout' }]).rounds).toBe(5);
   });
 
-  it('4라운드 뒤 부정출발이면 4라운드', () => {
-    expect(summarizeRun([...hits(300, 300, 300, 300), { kind: 'false-start' }]).rounds).toBe(4);
+  it('4라운드 뒤 무시한 탭과 시간 초과면 4라운드', () => {
+    expect(summarizeRun([...hits(300, 300, 300, 300), { kind: 'ignore' }, { kind: 'timeout' }]).rounds).toBe(4);
   });
 });

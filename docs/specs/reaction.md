@@ -19,9 +19,10 @@ Vite + TypeScript + Vitest 골격과 첫 피지컬 테스트인 반응속도 테
 | HUD | `라운드 n · 제한 Lms · 직전 xms`, 연속 구간이면 뒤에 ` · k/m` |
 | 버튼 | 72px 고정, DOM 요소 |
 | 배치 영역 | 가장자리 16px + safe-area, 상단 HUD 64px 제외 |
-| 게임 오버 | 시간 초과, 버튼 밖 탭, 버튼 표시 전 탭(연속 버튼 사이 포함), 100ms 미만 탭 중 하나라도 발생 |
+| 게임 오버 | 시간 초과만 (버튼마다 표시 시각부터 제한 시간 안에 누르지 못하면) |
+| 무시하는 탭 | 버튼 밖 탭, 버튼 표시 전 탭(대기·연속 버튼 사이·안내 중), 100ms 미만 탭 → 반응 없이 무시, 기록에 넣지 않음 |
 | 라운드 통과 | 그 라운드의 버튼을 모두 맞혀야 통과. 기록 rounds는 통과한 라운드 수, avgMs·bestMs는 성공한 탭 전부 |
-| 기록 | `{ gameId, rounds, avgMs, bestMs, at }`, rounds ≥ 1만 저장, 최근 10개, 저장 키 `pb:records:v2:<gameId>`(난이도 변경으로 예전 기록 초기화) |
+| 기록 | `{ gameId, rounds, avgMs, bestMs, at }`, rounds ≥ 1만 저장, 최근 10개, 저장 키 `pb:records:v3:<gameId>`(빗나간 탭 허용 규칙으로 예전 기록 초기화) |
 | 최고 기록 | rounds 최대, 같으면 avgMs 낮은 쪽 |
 
 ## 측정
@@ -32,7 +33,7 @@ Vite + TypeScript + Vitest 골격과 첫 피지컬 테스트인 반응속도 테
 ## 순수 함수 (`src/games/reaction/scoring.ts`)
 - `nextLimit(limit)`, `timeLimitFor(n)`, `burstSizeFor(n)`, `advance(progress, judgement)`, `burstLabel(round, index)`, `announcementFor(round)`
 - `pickDelay(rng)`, `randomPosition(rng, viewport, size, margin)`, `randomPositionAwayFrom(rng, viewport, size, margin, prev, minGap)`, `isHit(point, rect)`
-- `judgeTap(shownAt | null, tapAt, limitMs, hit)` → `false-start` | `miss` | `timeout` | `{ kind: 'hit', ms }`
+- `judgeTap(shownAt | null, tapAt, limitMs, hit)` → `ignore` | `timeout` | `{ kind: 'hit', ms }`
 - `summarizeRun(results)` → `{ rounds, avgMs, bestMs, endReason }` (라운드별 버튼 수만큼 성공해야 1라운드)
 
 ## 수용 기준
@@ -40,7 +41,7 @@ Vite + TypeScript + Vitest 골격과 첫 피지컬 테스트인 반응속도 테
 - AC-2 `npm run typecheck`, `npm test`, `npm run build` 종료 코드 0
 - AC-3 `src/games/types.ts`의 `GameModule`/`GameInstance`/`InputSample`, `src/games/reaction/index.ts`가 `GameModule` export
 - AC-4 `scoring.ts`는 three를 import하지 않고 위 함수들을 export
-- AC-5 `scoring.test.ts` 경계값: `timeLimitFor` 1→1000, 2→900, 4→729, 5→656, 8→478, 11→328, 15→128, 16→100, 100→100 · `nextLimit` 314→264, 130→100 · `burstSizeFor` 4→1, 5→2, 8→3, 11→4 · `advance`·`burstLabel` · 연속 버튼 간격 · `pickDelay` rng 0→600, 0.999→≤1800 · `randomPosition` 390x844에서 영역 안 · `isHit` 경계 안/바깥 1px · `judgeTap` null, 99/100ms, limit/limit+1, 버튼 밖 · `summarizeRun` 성공 0회
+- AC-5 `scoring.test.ts` 경계값: `timeLimitFor` 1→1000, 2→900, 4→729, 5→656, 8→478, 11→328, 15→128, 16→100, 100→100 · `nextLimit` 314→264, 130→100 · `burstSizeFor` 4→1, 5→2, 8→3, 11→4 · `advance`·`burstLabel` · 연속 버튼 간격 · `pickDelay` rng 0→600, 0.999→≤1800 · `randomPosition` 390x844에서 영역 안 · `isHit` 경계 안/바깥 1px · `judgeTap` null·버튼 밖·99ms는 ignore, 100ms는 hit, limit/limit+1 · `summarizeRun` 성공 0회
 - AC-6 `src/core/records.ts`의 `addRecord`·`getBest`·`getRecent`(저장소 주입), 테스트: 10개 유지, rounds 우선 최고 기록, rounds 0·100ms 미만·NaN 거부
 - AC-7 `localStorage`는 `src/platform/`에만 존재
 - AC-8 `src/games/reaction/`에 `pointerdown`·`timeStamp` 사용, `'click'`·`Date.now()` 없음

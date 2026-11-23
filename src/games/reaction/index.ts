@@ -26,8 +26,6 @@ const ANNOUNCE_MS = 1500;
 
 const END_HINT: Record<string, string> = {
   timeout: '시간 초과!',
-  miss: '빗나갔어요!',
-  'false-start': '너무 빨랐어요!',
 };
 
 function createReactionGame(ctx: GameContext): GameInstance {
@@ -199,6 +197,7 @@ function createReactionGame(ctx: GameContext): GameInstance {
         phase === 'shown' &&
         isHit({ x: input.x, y: input.y }, { x: rect.left, y: rect.top, width: rect.width, height: rect.height });
       const judgement = judgeTap(phase === 'shown' ? shownAt : null, input.t, timeLimitFor(round), hit);
+      if (judgement.kind === 'ignore') return;
       if (judgement.kind !== 'hit') {
         finish(judgement);
         return;
@@ -208,7 +207,7 @@ function createReactionGame(ctx: GameContext): GameInstance {
       button.classList.remove('visible');
       lastMs = judgement.ms;
       const next = advance({ round, index }, judgement);
-      if (next.kind === 'over') return;
+      if (next.kind === 'over' || next.kind === 'stay') return;
       round = next.round;
       index = next.index;
       updateStatus();

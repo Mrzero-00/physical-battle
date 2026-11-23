@@ -1,7 +1,7 @@
 // 전체 랭킹 API 서비스 단위 테스트 (메모리 저장소)
 import { describe, expect, it } from 'vitest';
 import { createMemoryStore } from './memory-store';
-import { createRankingService, parseAllowedOrigins } from './service';
+import { createRankingService, metaKey, parseAllowedOrigins, rankKey } from './service';
 
 const ALLOWED = 'https://physical-battle.vercel.app';
 
@@ -126,5 +126,20 @@ describe('ranking service', () => {
   it('잘못된 gameId 조회는 400', async () => {
     const { svc } = setup();
     expect((await svc.handle(get('gameId=x'))).status).toBe(400);
+  });
+
+  it('랭킹 키는 v2이고 v1 데이터는 읽지 않는다', async () => {
+    const store = createMemoryStore();
+    await store.zadd('pb:rank:v1:reaction', 5_000_000, 'web:old-player-01');
+    await store.hset('pb:rank:v1:reaction:meta', 'web:old-player-01', JSON.stringify({ nickname: '옛기록', bestMs: 150, at: 1 }));
+    const { svc } = setup(store);
+    const before = await (await svc.handle(get('gameId=reaction&playerId=web:old-player-01'))).json();
+    expect(before).toEqual({ top: [], me: null, total: 0 });
+    await svc.handle(post(submission()));
+    expect(await store.zcard('pb:rank:v2:reaction')).toBe(1);
+    const [meta] = await store.hmget('pb:rank:v2:reaction:meta', ['web:aaaaaaaa-0000-4000-8000-000000000001']);
+    expect(meta).toContain('테스터');
+    expect(rankKey('reaction')).toBe('pb:rank:v2:reaction');
+    expect(metaKey('reaction')).toBe('pb:rank:v2:reaction:meta');
   });
 });

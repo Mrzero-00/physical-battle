@@ -12,7 +12,7 @@ export interface RunRecord {
 export const RECENT_LIMIT = 10;
 export const MIN_HUMAN_MS = 100;
 
-export const RECORDS_VERSION = 2;
+export const RECORDS_VERSION = 3;
 
 export const recordsKey = (gameId: string) => `pb:records:v${RECORDS_VERSION}:${gameId}`;
 

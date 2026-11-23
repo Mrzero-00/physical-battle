@@ -24,8 +24,9 @@ interface Meta {
   at: number;
 }
 
-const rankKey = (gameId: string) => `pb:rank:v1:${gameId}`;
-const metaKey = (gameId: string) => `pb:rank:v1:${gameId}:meta`;
+export const RANK_VERSION = 2;
+export const rankKey = (gameId: string) => `pb:rank:v${RANK_VERSION}:${gameId}`;
+export const metaKey = (gameId: string) => `pb:rank:v${RANK_VERSION}:${gameId}:meta`;
 
 function parseMeta(raw: string | null): Meta | null {
   if (!raw) return null;
