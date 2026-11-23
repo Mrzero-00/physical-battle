@@ -1,0 +1,49 @@
+{
+  "verifier": {
+    "enabled": true,
+    "agent": "ax-verifier",
+    "focus": [
+      "수용 기준 충족",
+      "회귀 없음",
+      "하네스 검사 통과",
+      "측정 정확도·부정 기록 방지"
+    ]
+  },
+  "successCriteria": [
+    {
+      "id": "acceptance",
+      "text": "명세의 수용 기준을 모두 충족한다"
+    },
+    {
+      "id": "checks-pass",
+      "text": "필수 하네스 검사가 모두 통과한다"
+    },
+    {
+      "id": "measure-tests",
+      "text": "변경된 점수·판정 함수마다 단위 테스트가 있고 통과한다"
+    },
+    {
+      "id": "mobile-viewport",
+      "text": "390x844 뷰포트에서 화면이 깨지지 않고 터치로 플레이할 수 있다"
+    }
+  ],
+  "stopCriteria": {
+    "maxIterations": 3,
+    "repeatFailureLimit": 2,
+    "custom": [
+      {
+        "id": "needs-decision",
+        "text": "요구사항 해석이 둘 이상으로 갈려 사용자 결정이 필요하다"
+      },
+      {
+        "id": "scope-creep",
+        "text": "수정 범위가 명세 밖 파일·기능으로 번진다"
+      },
+      {
+        "id": "measure-change",
+        "text": "기존 기록과 비교가 깨지는 측정 방식 변경이 필요하다"
+      }
+    ]
+  },
+  "onStop": "ask-user"
+}

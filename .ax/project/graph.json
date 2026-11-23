@@ -1,0 +1,70 @@
+{
+  "template": "standard",
+  "title": "기본: 명확화 → 명세 → 승인 → 구현 루프 → 검사 → 사람 리뷰",
+  "nodes": [
+    {
+      "id": "clarify",
+      "kind": "human",
+      "title": "요구사항 명확화 (사용자 질문)"
+    },
+    {
+      "id": "spec",
+      "kind": "agent",
+      "agent": "ax-planner",
+      "title": "명세·수용 기준 작성"
+    },
+    {
+      "id": "approve-spec",
+      "kind": "human",
+      "title": "명세 승인"
+    },
+    {
+      "id": "implement",
+      "kind": "loop",
+      "title": "구현 (검수 에이전트와 루프)"
+    },
+    {
+      "id": "checks",
+      "kind": "check",
+      "title": "하네스 검사 실행"
+    },
+    {
+      "id": "review",
+      "kind": "human",
+      "title": "사람 최종 리뷰"
+    }
+  ],
+  "edges": [
+    [
+      "clarify",
+      "spec"
+    ],
+    [
+      "spec",
+      "approve-spec"
+    ],
+    [
+      "approve-spec",
+      "spec",
+      "수정 요청"
+    ],
+    [
+      "approve-spec",
+      "implement",
+      "승인"
+    ],
+    [
+      "implement",
+      "checks"
+    ],
+    [
+      "checks",
+      "review"
+    ],
+    [
+      "review",
+      "implement",
+      "수정 요청"
+    ]
+  ]
+}

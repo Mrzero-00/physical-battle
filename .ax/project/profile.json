@@ -1,0 +1,10 @@
+{
+  "serviceType": "custom",
+  "name": "physical-battle",
+  "summary": "반응속도 대결, 동체시력 대결 등 핸드폰으로 측정할 수 있는 여러 피지컬 테스트 미니게임을 모아 둔 앱",
+  "platform": "모바일 웹 브라우저 + 앱인토스(토스 미니앱)",
+  "stack": "TypeScript + Three.js + Rapier",
+  "users": "기록·순위로 실력을 겨루는 경쟁 지향 플레이어",
+  "constraints": "핸드폰 터치·센서 입력 기준으로 측정, 모바일 성능 고려. 앱인토스 입점 요건·SDK 제약은 확인 필요",
+  "glossary": "피지컬 테스트: 반응속도·동체시력 등 신체 능력을 측정하는 개별 미니게임"
+}

@@ -1,0 +1,17 @@
+{
+  "include": [
+    "README.md",
+    ".ax/project/*.json",
+    "docs/**/*.md",
+    "docs/apps-in-toss.md"
+  ],
+  "exclude": [
+    "node_modules/",
+    "dist/",
+    "build/",
+    ".env*",
+    "*.lock"
+  ],
+  "maxFileChars": 12000,
+  "strategy": "작업 관련 파일만 ax-context-scout가 골라 요약해 전달"
+}
