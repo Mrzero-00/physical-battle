@@ -2,6 +2,7 @@
 import type { GameContext, GameInstance, GameModule, GameResult, InputSample } from '../types';
 import {
   advance,
+  announcementFor,
   BUTTON_SIZE,
   burstLabel,
   EDGE_MARGIN,
@@ -17,9 +18,10 @@ import {
 } from './scoring';
 import { createStage, type StageTone } from './stage';
 
-type Phase = 'ready' | 'waiting' | 'shown' | 'over';
+type Phase = 'ready' | 'announce' | 'waiting' | 'shown' | 'over';
 
 const TIMEOUT_GRACE_MS = 30;
+const ANNOUNCE_MS = 1500;
 
 const END_HINT: Record<string, string> = {
   timeout: '시간 초과!',
@@ -38,7 +40,16 @@ function createReactionGame(ctx: GameContext): GameInstance {
   button.style.height = `${BUTTON_SIZE}px`;
   const hint = document.createElement('p');
   hint.className = 'reaction-hint';
-  area.append(button, hint);
+  const announce = document.createElement('div');
+  announce.className = 'reaction-announce';
+  announce.setAttribute('role', 'status');
+  announce.setAttribute('aria-live', 'polite');
+  const announceTitle = document.createElement('p');
+  announceTitle.className = 'reaction-announce-title';
+  const announceSub = document.createElement('p');
+  announceSub.className = 'reaction-announce-sub';
+  announce.append(announceTitle, announceSub);
+  area.append(button, hint, announce);
   ctx.root.appendChild(area);
 
   const stage = createStage(area);
@@ -50,6 +61,7 @@ function createReactionGame(ctx: GameContext): GameInstance {
   let shownAt: number | null = null;
   let delayTimer = 0;
   let timeoutTimer = 0;
+  let announceTimer = 0;
   let frame = 0;
   let finished: GameResult | null = null;
 
@@ -70,7 +82,14 @@ function createReactionGame(ctx: GameContext): GameInstance {
   const clearTimers = () => {
     window.clearTimeout(delayTimer);
     window.clearTimeout(timeoutTimer);
+    window.clearTimeout(announceTimer);
     window.cancelAnimationFrame(frame);
+  };
+
+  const hideAnnouncement = () => {
+    announce.classList.remove('visible');
+    announceTitle.textContent = '';
+    announceSub.textContent = '';
   };
 
   const finish = (judgement: Judgement) => {
@@ -121,6 +140,21 @@ function createReactionGame(ctx: GameContext): GameInstance {
     delayTimer = window.setTimeout(showButton, pickDelay(Math.random));
   };
 
+  const announceThenSchedule = (title: string, sub: string) => {
+    shownAt = null;
+    hint.textContent = '';
+    announceTitle.textContent = title;
+    announceSub.textContent = sub;
+    announce.classList.add('visible');
+    stage.setTone('waiting');
+    setPhase('announce', true);
+    announceTimer = window.setTimeout(() => {
+      if (phase !== 'announce') return;
+      hideAnnouncement();
+      scheduleRound();
+    }, ANNOUNCE_MS);
+  };
+
   const showNextInBurst = () => {
     shownAt = null;
     setPhase('waiting', true);
@@ -142,6 +176,8 @@ function createReactionGame(ctx: GameContext): GameInstance {
       lastMs = undefined;
       results.length = 0;
       finished = null;
+      clearTimers();
+      hideAnnouncement();
       setPhase('ready');
       hint.textContent = '화면을 탭하면 시작합니다';
       ctx.setStatus('버튼이 나타나면 최대한 빨리 누르세요');
@@ -149,7 +185,7 @@ function createReactionGame(ctx: GameContext): GameInstance {
       window.addEventListener('resize', onResize);
     },
     measure(input: InputSample) {
-      if (phase === 'over') return;
+      if (phase === 'over' || phase === 'announce') return;
       if (phase === 'ready') {
         updateStatus();
         scheduleRound();
@@ -173,7 +209,12 @@ function createReactionGame(ctx: GameContext): GameInstance {
       round = next.round;
       index = next.index;
       updateStatus();
-      if (next.kind === 'next-button') showNextInBurst();
+      if (next.kind === 'next-button') {
+        showNextInBurst();
+        return;
+      }
+      const notice = announcementFor(next.round);
+      if (notice) announceThenSchedule(notice.title, notice.sub);
       else scheduleRound();
     },
     result() {

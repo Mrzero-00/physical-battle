@@ -470,3 +470,45 @@ button {
     animation: none;
   }
 }
+
+.reaction-announce {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 160ms ease-out;
+}
+
+.reaction-announce.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.reaction-announce-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 900;
+  color: #ffd34d;
+  letter-spacing: -0.01em;
+}
+
+.reaction-announce-sub {
+  margin: 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reaction-announce {
+    transition: none;
+  }
+}

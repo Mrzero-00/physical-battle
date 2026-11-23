@@ -71,6 +71,19 @@ export function burstSizeFor(round: number): number {
   return 1;
 }
 
+export interface Announcement {
+  size: number;
+  title: string;
+  sub: string;
+}
+
+export function announcementFor(round: number): Announcement | null {
+  if (!Number.isInteger(round) || round < 2) return null;
+  const size = burstSizeFor(round);
+  if (size <= burstSizeFor(round - 1)) return null;
+  return { size, title: `이제 ${size}개씩 버튼이 나옵니다!`, sub: '누르자마자 다음 버튼이 떠요' };
+}
+
 export interface Progress {
   round: number;
   index: number;

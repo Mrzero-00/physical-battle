@@ -14,6 +14,7 @@ Vite + TypeScript + Vitest 골격과 첫 피지컬 테스트인 반응속도 테
 | 버튼 표시 전 대기 | 600~1800ms 무작위 |
 | 제한 시간 | `L(1)=1000`, `L(n+1)=max(100, L(n) − max(50, Math.round(L(n)×0.1)))` — 1000, 900, 810, 729, 656, 590, 531, 478, 428, 378, 328, 278, 228, 178, 128, 16라운드부터 100ms |
 | 연속 버튼 | 라운드당 버튼 수: 1~4라운드 1개, 5~7라운드 2개, 8~10라운드 3개, 11라운드부터 4개. 첫 버튼은 무작위 대기 뒤, 다음 버튼은 앞 버튼을 맞히는 즉시 다음 프레임에 표시. 버튼마다 제한 시간을 따로 잰다 |
+| 안내 | 버튼 수가 늘어나는 5·8·11라운드의 첫 버튼 전 1500ms 동안 "이제 N개씩 버튼이 나옵니다!" / "누르자마자 다음 버튼이 떠요" 표시, 그동안 탭은 무시(측정·판정 없음), 이후 평소 무작위 대기 |
 | 위치 제약 | 연속 버튼의 중심은 앞 버튼 중심에서 108px 이상 (8번 시도 후 실패하면 가장 먼 꼭짓점) |
 | HUD | `라운드 n · 제한 Lms · 직전 xms`, 연속 구간이면 뒤에 ` · k/m` |
 | 버튼 | 72px 고정, DOM 요소 |
@@ -29,7 +30,7 @@ Vite + TypeScript + Vitest 골격과 첫 피지컬 테스트인 반응속도 테
 - 반응시간 = 탭 시각 − 표시 시각. setTimeout은 무응답 종료에만 쓰고 측정값에 넣지 않는다.
 
 ## 순수 함수 (`src/games/reaction/scoring.ts`)
-- `nextLimit(limit)`, `timeLimitFor(n)`, `burstSizeFor(n)`, `advance(progress, judgement)`, `burstLabel(round, index)`
+- `nextLimit(limit)`, `timeLimitFor(n)`, `burstSizeFor(n)`, `advance(progress, judgement)`, `burstLabel(round, index)`, `announcementFor(round)`
 - `pickDelay(rng)`, `randomPosition(rng, viewport, size, margin)`, `randomPositionAwayFrom(rng, viewport, size, margin, prev, minGap)`, `isHit(point, rect)`
 - `judgeTap(shownAt | null, tapAt, limitMs, hit)` → `false-start` | `miss` | `timeout` | `{ kind: 'hit', ms }`
 - `summarizeRun(results)` → `{ rounds, avgMs, bestMs, endReason }` (라운드별 버튼 수만큼 성공해야 1라운드)

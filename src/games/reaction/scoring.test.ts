@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   advance,
+  announcementFor,
   BUTTON_SIZE,
   burstLabel,
   burstSizeFor,
@@ -101,6 +102,24 @@ describe('advance', () => {
       p = { round: next.round, index: next.index };
     }
     expect(firstBurst).toBe(5);
+  });
+});
+
+describe('announcementFor', () => {
+  it.each([1, 4, 6, 7, 10, 12, 16, 100, 0, -3, 2.5, Number.NaN])('%f라운드는 안내 없음', (round) => {
+    expect(announcementFor(round)).toBeNull();
+  });
+
+  it.each([
+    [5, 2],
+    [8, 3],
+    [11, 4],
+  ])('%i라운드는 %i개 안내', (round, size) => {
+    expect(announcementFor(round)).toEqual({
+      size,
+      title: `이제 ${size}개씩 버튼이 나옵니다!`,
+      sub: '누르자마자 다음 버튼이 떠요',
+    });
   });
 });
 
