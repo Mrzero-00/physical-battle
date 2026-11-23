@@ -6,7 +6,7 @@
 ## 결정 사항
 - `src/core/skins.ts`: `SkinId`, `SKINS`(기본 버튼·모기·나비·바퀴벌레), `SKIN_KEY='pb:skin'`, `parseSkin`(목록 밖·빈 값 → 'default'), `loadSkin`/`saveSkin`, `skinMarkup(id)`(루트 `<svg class="skin skin-<id>" … aria-hidden="true" focusable="false">`)
 - `GameContext.skin?`를 router가 `loadSkin`으로 넘긴다. `reaction/index.ts`는 `button.innerHTML = skinMarkup(...)`과 `button.dataset.skin`만 더한다
-- 벌레 스킨은 밝은 원판(#f4f6f8) 위에 진한 벌레, default는 지금의 초록 원
+- 벌레 스킨은 원판·테두리 없이 벌레 아이콘만(색은 그대로, 2026-11-23 변경), default는 지금의 초록 원
 - 애니메이션은 안쪽 부품 `.skin-part`에만, keyframes는 transform만, `.reaction-target`·svg 루트에는 transition·animation 없음, `prefers-reduced-motion: reduce`면 `.skin-part { animation: none }`
 - `src/app/skins.ts` 선택 화면: `button.skin-option[data-skin]` 4개(72px 미리보기·이름·✓·`aria-pressed`), 탭하면 저장. 홈 `home-nav`는 2열 + "버튼 모양" 전체 폭
 

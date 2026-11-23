@@ -957,8 +957,8 @@ button {
 }
 
 .reaction-target[data-skin]:not([data-skin='default']) {
-  background: #f4f6f8;
-  box-shadow: 0 0 0 6px rgba(244, 246, 248, 0.25);
+  background: transparent;
+  box-shadow: none;
 }
 
 .skin {
