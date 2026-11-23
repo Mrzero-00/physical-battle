@@ -1246,3 +1246,106 @@ button {
     animation: none;
   }
 }
+
+.hud-help {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.hud-help:disabled {
+  visibility: hidden;
+}
+
+.guide {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.guide-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+
+.guide-screen .guide-host {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.guide-screen .guide {
+  position: absolute;
+  inset: 0;
+}
+
+.guide-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px calc(20px + var(--safe-right)) 12px calc(20px + var(--safe-left));
+}
+
+.guide-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.guide-art {
+  margin: 14px 0 4px;
+  display: flex;
+  justify-content: center;
+}
+
+.guide-art svg {
+  width: 100%;
+  max-width: 260px;
+  max-height: 120px;
+  height: auto;
+}
+
+.guide-heading {
+  margin: 16px 0 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.guide-steps {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 6px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.guide-over,
+.guide-record {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.guide-footer {
+  flex: 0 0 auto;
+  padding: 12px calc(20px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(20px + var(--safe-left));
+  border-top: 1px solid #1d2230;
+  background: var(--bg);
+}
+
+.guide-start {
+  width: 100%;
+  min-height: 52px;
+}

@@ -6,12 +6,14 @@ import { bestComparisonText, RANKED_GAME_IDS } from '../core/ranking';
 import { addRecord, getBest, type RunRecord } from '../core/records';
 import { SITE_URL, shareText } from '../core/share';
 import { loadSkin } from '../core/skins';
+import { guideFor, guideSeenKey } from '../games/guides';
 import { findGame, games, labelsFor } from '../games/registry';
 import type { GameInstance, GameResult } from '../games/types';
 import type { PlatformAdapter, SubmitOutcome } from '../platform';
 import { openCoinSheet, type AdReward } from './coin-sheet';
 import { renderCoinScreen } from './coins';
 import { createGameTabs, resolveGameId } from './game-tabs';
+import { openGuide, renderGuideScreen } from './guide';
 import { el, readSafeInsets } from './dom';
 import { renderGlobalRanking } from './global-ranking';
 import { clearSubmittedMarker, syncGlobalRanking } from './global-status';
@@ -55,7 +57,11 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
   const topBar = (title?: string, onBack?: () => void) =>
     createTopBar({ coins: coinsEnabled ? readCoins : null, onOpenCoins: openCoins, title, onBack });
 
+  let closeGuide: (() => void) | null = null;
+
   const stopGame = () => {
+    closeGuide?.();
+    closeGuide = null;
     current?.dispose();
     current = null;
   };
@@ -116,6 +122,21 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
   }
 
   function requestPlay(gameId: string) {
+    const guide = guideFor(gameId);
+    if (guide && platform.storage.get(guideSeenKey(gameId)) === null) {
+      stopGame();
+      closeGuide = renderGuideScreen(root, topBar('게임 방법', showHome), guide, (reason) => {
+        closeGuide = null;
+        platform.storage.set(guideSeenKey(gameId), '1');
+        if (reason === 'start') payAndStart(gameId);
+        else showHome();
+      });
+      return;
+    }
+    payAndStart(gameId);
+  }
+
+  function payAndStart(gameId: string) {
     if (!coinsEnabled) {
       startGame(gameId);
       return;
@@ -212,6 +233,36 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
     status.setAttribute('aria-live', 'polite');
     hud.append(back, title, status);
     const slot = el('div', 'game-slot');
+    const guide = guideFor(gameId);
+    if (guide) {
+      const help = el('button', 'hud-help', '?');
+      help.type = 'button';
+      help.setAttribute('aria-label', '게임 방법');
+      const disableHelp = () => {
+        help.disabled = true;
+        help.setAttribute('aria-disabled', 'true');
+      };
+      help.addEventListener('click', () => {
+        if (help.disabled || closeGuide) return;
+        help.disabled = true;
+        closeGuide = openGuide(slot, guide, () => {
+          closeGuide = null;
+          platform.storage.set(guideSeenKey(gameId), '1');
+          if (!started) help.disabled = false;
+        });
+      });
+      let started = false;
+      slot.addEventListener(
+        'pointerdown',
+        (event) => {
+          if (started || (event.target instanceof Element && event.target.closest('.guide'))) return;
+          started = true;
+          disableHelp();
+        },
+        true,
+      );
+      hud.appendChild(help);
+    }
     screen.append(hud, slot);
     root.replaceChildren(screen);
 
