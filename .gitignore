@@ -1,5 +1,6 @@
-.DS_Store
 node_modules/
+dist/
+.DS_Store
 .env
 .env.*
 !.env.example
@@ -11,6 +12,5 @@ node_modules/
 .ax/runs/
 # 자동 생성되는 엔지니어링 맵 (팀과 공유하려면 이 줄을 지우고 커밋)
 .ax/engineering.html
-
 # 로컬 도구 상태
 .omc/

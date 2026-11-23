@@ -1,5 +1,24 @@
 {
-  "checks": [],
+  "checks": [
+    {
+      "id": "typecheck",
+      "title": "타입 검사",
+      "command": "npm run typecheck",
+      "required": true
+    },
+    {
+      "id": "test",
+      "title": "단위 테스트",
+      "command": "npm test",
+      "required": true
+    },
+    {
+      "id": "build",
+      "title": "빌드",
+      "command": "npm run build",
+      "required": true
+    }
+  ],
   "rules": [
     "코드 주석 금지: 파일 맨 위에 어떤 기능의 코드인지 한 줄 타이틀 주석만 두고, 그 밖의 주석(설명·구분선·TODO·주석 처리된 코드)은 모두 쓰지 않는다",
     "각 피지컬 테스트는 src/games/<이름>/에 독립 모듈로 두고 공통 인터페이스(시작·측정·결과)를 따른다",
