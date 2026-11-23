@@ -7,9 +7,12 @@
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "vite build"
+    "build": "vite build",
+    "build:toss": "VITE_PLATFORM=apps-in-toss vite build --outDir dist-toss && ait build",
+    "dev:toss": "VITE_PLATFORM=apps-in-toss vite"
   },
   "dependencies": {
+    "@apps-in-toss/web-framework": "^3.10.0",
     "three": "^0.187.0"
   },
   "devDependencies": {

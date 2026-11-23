@@ -1,9 +1,11 @@
 // 실행 환경에 맞는 플랫폼 어댑터 선택
+import { createAppsInTossPlatform } from './apps-in-toss';
 import type { PlatformAdapter } from './types';
 import { createWebPlatform } from './web';
 
-export type { PlatformAdapter, KeyValueStorage } from './types';
+export type { KeyValueStorage, LeaderboardPort, PlatformAdapter, PlayerProfile, RewardOutcome, SubmitOutcome } from './types';
 
 export function getPlatform(): PlatformAdapter {
+  if (import.meta.env.VITE_PLATFORM === 'apps-in-toss') return createAppsInTossPlatform();
   return createWebPlatform();
 }

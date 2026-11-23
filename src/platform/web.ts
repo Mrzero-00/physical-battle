@@ -38,6 +38,24 @@ function createLocalStorage(): KeyValueStorage {
   }
 }
 
+export function createWebStorage(): KeyValueStorage {
+  return createLocalStorage();
+}
+
 export function createWebPlatform(): PlatformAdapter {
-  return { name: 'web', storage: createLocalStorage() };
+  return {
+    name: 'web',
+    storage: createLocalStorage(),
+    leaderboard: {
+      available: async () => false,
+      submit: async () => 'unsupported',
+      open: async () => undefined,
+    },
+    profile: async () => null,
+    ads: {
+      preload: () => undefined,
+      isReady: () => false,
+      showRewarded: async () => 'unavailable',
+    },
+  };
 }
