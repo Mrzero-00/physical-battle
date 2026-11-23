@@ -16,3 +16,4 @@ dist/
 .omc/
 dist-toss/
 *.ait
+.vercel
