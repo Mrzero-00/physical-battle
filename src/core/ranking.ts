@@ -1,5 +1,5 @@
 // 전체 랭킹 점수 인코딩·제출 검증·닉네임 규칙 (클라이언트·서버 공용)
-import { DEFAULT_LABELS, type ScoreLabels } from './labels';
+import { DEFAULT_LABELS, type ScoreLabels } from './labels.js';
 
 export const RANKED_GAME_IDS = [
   'reaction',
