@@ -1,7 +1,8 @@
 // 앱인토스(토스 미니앱) 플랫폼 어댑터 — 게임센터 리더보드·보상형 광고
 import { reduceAdEvent, startAd, type AdEventType, type AdState } from '../core/ads';
 import { mapSubmitResponse } from '../core/leaderboard';
-import type { PlatformAdapter, PlayerProfile, RewardOutcome, SubmitOutcome } from './types';
+import { sanitizeNickname } from '../core/ranking';
+import type { PlatformAdapter, PlayerIdentity, PlayerProfile, RewardOutcome, ShareOutcome, SubmitOutcome } from './types';
 import { createWebStorage } from './web';
 
 type Version = `${number}.${number}.${number}`;
@@ -19,6 +20,8 @@ export interface AppsInTossSdk {
   getGameCenterGameProfile(): Promise<unknown>;
   loadFullScreenAd: FullScreenAdFn;
   showFullScreenAd: FullScreenAdFn;
+  getUserKeyForGame(): Promise<unknown>;
+  share(message: { message: string }): Promise<void>;
 }
 
 export interface AdRuntime {
@@ -29,6 +32,8 @@ export interface AdRuntime {
 
 export const TEST_REWARDED_AD_ID = 'ait-ad-test-rewarded-id';
 export const LEADERBOARD_MIN_VERSION = { android: '5.221.0', ios: '5.221.0' } as const;
+export const USER_KEY_MIN_VERSION = { android: '5.232.0', ios: '5.232.0' } as const;
+export const TOSS_FALLBACK_NICKNAME = '토스 플레이어';
 export const AVAILABILITY_TIMEOUT_MS = 1500;
 const TICK_MS = 250;
 const AD_EVENTS = new Set<AdEventType>([
@@ -77,6 +82,12 @@ function toProfile(res: unknown): PlayerProfile | null {
   const r = res as { statusCode?: unknown; nickname?: unknown; profileImageUri?: unknown };
   if (r.statusCode !== 'SUCCESS' || typeof r.nickname !== 'string') return null;
   return { nickname: r.nickname, imageUri: typeof r.profileImageUri === 'string' ? r.profileImageUri : '' };
+}
+
+function toHash(res: unknown): string | null {
+  if (typeof res !== 'object' || res === null) return null;
+  const r = res as { type?: unknown; hash?: unknown };
+  return r.type === 'HASH' && typeof r.hash === 'string' && r.hash.length > 0 ? r.hash : null;
 }
 
 export interface AppsInTossOptions {
@@ -214,6 +225,28 @@ export function createAppsInTossPlatform(options: AppsInTossOptions = {}): Platf
       preload,
       isReady: () => adPhase === 'ready',
       showRewarded,
+    },
+    async identity(): Promise<PlayerIdentity | null> {
+      try {
+        const s = await sdk();
+        if (!s.isMinVersionSupported(USER_KEY_MIN_VERSION)) return null;
+        const hash = toHash(await s.getUserKeyForGame());
+        if (!hash) return null;
+        const profile = toProfile(await s.getGameCenterGameProfile().catch(() => null));
+        const nickname = profile ? sanitizeNickname(profile.nickname, TOSS_FALLBACK_NICKNAME) : TOSS_FALLBACK_NICKNAME;
+        return { playerId: `toss:${hash}`, nickname, needsNickname: false };
+      } catch {
+        return null;
+      }
+    },
+    async share(text: string): Promise<ShareOutcome> {
+      try {
+        const s = await sdk();
+        await s.share({ message: text });
+        return 'shared';
+      } catch {
+        return 'failed';
+      }
     },
   };
 }

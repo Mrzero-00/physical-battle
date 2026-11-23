@@ -1,25 +1,55 @@
-// 화면 전환 (홈 → 코인 → 게임 → 결과)
+// 화면 전환 (홈 → 코인 → 게임 → 결과 · 내 기록 · 전체 랭킹)
+import { appliedBonus } from '../core/coin-view';
 import { grantBonus, loadCoins, rewardDelta, saveCoins, spend, total, type CoinState } from '../core/coins';
 import { toLeaderboardScore } from '../core/leaderboard';
+import { bestComparisonText } from '../core/ranking';
 import { addRecord, getBest, type RunRecord } from '../core/records';
-import { findGame } from '../games/registry';
+import { SITE_URL, shareText } from '../core/share';
+import { findGame, games } from '../games/registry';
 import type { GameInstance, GameResult } from '../games/types';
 import type { PlatformAdapter, SubmitOutcome } from '../platform';
+import { openCoinSheet, type AdReward } from './coin-sheet';
 import { renderCoinScreen } from './coins';
 import { el, readSafeInsets } from './dom';
+import { renderGlobalRanking } from './global-ranking';
+import { clearSubmittedMarker, syncGlobalRanking } from './global-status';
 import { renderHome } from './home';
+import { openNicknameDialog } from './nickname';
+import { createRankingClient, type RankingClient } from './ranking-client';
+import { renderRecords } from './records';
 import { renderResult } from './result';
+import { createTopBar } from './topbar';
+
+function rankingClientFor(platform: PlatformAdapter): RankingClient {
+  if (platform.rankingClient) return platform.rankingClient;
+  const base = import.meta.env.VITE_RANKING_API_BASE ?? (platform.name === 'apps-in-toss' ? SITE_URL : '');
+  return createRankingClient((input, init) => fetch(input, init), base);
+}
 
 export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
-  const coinsEnabled = platform.name === 'apps-in-toss';
+  const coinsEnabled = platform.name !== 'web';
+  const client = rankingClientFor(platform);
+  const defaultGame = games[0].id;
   let current: GameInstance | null = null;
 
-  const readCoins = (): CoinState | null => {
-    if (!coinsEnabled) return null;
+  const readCoins = (): CoinState => {
     const coins = loadCoins(platform.storage, Date.now());
     saveCoins(platform.storage, coins);
     return coins;
   };
+
+  const watchAd = async (): Promise<AdReward> => {
+    const outcome = await platform.ads.showRewarded();
+    const before = loadCoins(platform.storage, Date.now());
+    const next = grantBonus(before, rewardDelta(outcome, total(before)));
+    saveCoins(platform.storage, next);
+    return { outcome, applied: appliedBonus(before, next), totalBefore: total(before), coins: next };
+  };
+
+  const openCoins = () => openCoinSheet(root, { readCoins, watchAd });
+
+  const topBar = (title?: string, onBack?: () => void) =>
+    createTopBar({ coins: coinsEnabled ? readCoins : null, onOpenCoins: openCoins, title, onBack });
 
   const stopGame = () => {
     current?.dispose();
@@ -28,8 +58,37 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
 
   const showHome = () => {
     stopGame();
-    renderHome(root, { platform, coins: readCoins(), onPlay: requestPlay });
+    renderHome(root, {
+      platform,
+      topBar: topBar(),
+      coinsEnabled,
+      onPlay: requestPlay,
+      onRecords: showRecords,
+      onRanking: showRanking,
+    });
   };
+
+  const editNickname = (after: () => void) =>
+    openNicknameDialog(root, platform.storage, () => {
+      clearSubmittedMarker(platform, defaultGame);
+      after();
+    });
+
+  function showRecords() {
+    stopGame();
+    renderRecords(root, { topBar: topBar('내 기록', showHome), storage: platform.storage, gameId: defaultGame, onRanking: showRanking });
+  }
+
+  function showRanking() {
+    stopGame();
+    renderGlobalRanking(root, {
+      topBar: topBar('전체 랭킹', showHome),
+      platform,
+      client,
+      gameId: defaultGame,
+      onNickname: () => editNickname(showRanking),
+    });
+  }
 
   function requestPlay(gameId: string) {
     if (!coinsEnabled) {
@@ -40,25 +99,18 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
     const paid = spend(coins);
     if (!paid.ok) {
       saveCoins(platform.storage, coins);
-      showCoinScreen(gameId, coins);
+      showCoinScreen(gameId);
       return;
     }
     saveCoins(platform.storage, paid.state);
     startGame(gameId);
   }
 
-  function showCoinScreen(gameId: string, coins: CoinState) {
+  function showCoinScreen(gameId: string) {
     stopGame();
     renderCoinScreen(root, {
-      coins,
-      watchAd: async () => {
-        const outcome = await platform.ads.showRewarded();
-        const latest = loadCoins(platform.storage, Date.now());
-        const delta = rewardDelta(outcome, total(latest));
-        const next = grantBonus(latest, delta);
-        saveCoins(platform.storage, next);
-        return { outcome, delta, coins: next };
-      },
+      topBar: topBar('코인 충전', showHome),
+      watchAd,
       onStart: () => requestPlay(gameId),
       onHome: showHome,
     });
@@ -68,6 +120,7 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
     let isNewBest = false;
     let submission: Promise<SubmitOutcome> | null = null;
     const available = platform.leaderboard.available();
+    const previousBest = getBest(platform.storage, gameId);
     if (result.rounds >= 1 && result.avgMs !== null && result.bestMs !== null) {
       const record: RunRecord = {
         gameId,
@@ -84,21 +137,32 @@ export function createApp(root: HTMLElement, platform: PlatformAdapter): void {
       }
     }
     const best = getBest(platform.storage, gameId);
+    const comparison = bestComparisonText({ rounds: result.rounds, avgMs: result.avgMs }, previousBest);
     const finishedGame = current;
     window.setTimeout(() => {
       if (current !== finishedGame) return;
       stopGame();
       renderResult(
-        root,
-        {
-          result,
-          isNewBest,
-          bestRounds: best ? best.rounds : null,
-          coins: readCoins(),
-          ranking: { available, submission, leaderboard: platform.leaderboard },
-        },
-        { onRetry: () => requestPlay(gameId), onHome: showHome },
-      );
+          root,
+          {
+            topBar: topBar(),
+            result,
+            isNewBest,
+            bestRounds: best ? best.rounds : null,
+            comparison,
+            coinsEnabled,
+            platformName: platform.name,
+            toss: { available, submission, leaderboard: platform.leaderboard },
+            global: () => syncGlobalRanking(platform, client, gameId),
+          },
+          {
+            onRetry: () => requestPlay(gameId),
+            onHome: showHome,
+            onRanking: showRanking,
+            onNickname: (retry) => editNickname(retry),
+            onShare: () => platform.share(shareText(result.rounds, result.avgMs)),
+          },
+        );
     }, 600);
   };
 

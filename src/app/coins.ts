@@ -1,29 +1,19 @@
 // 코인 부족 화면 (보상형 광고로 코인 받기)
-import { total, type CoinState } from '../core/coins';
-import type { RewardOutcome } from '../platform';
+import { adOutcomeMessage } from '../core/coin-view';
+import { total } from '../core/coins';
+import type { AdReward } from './coin-sheet';
 import { el } from './dom';
-import { coinBadge } from './home';
+import { refreshCoinBars } from './topbar';
 
 export interface CoinScreenOptions {
-  coins: CoinState;
-  watchAd(): Promise<{ outcome: RewardOutcome; delta: number; coins: CoinState }>;
+  topBar: HTMLElement;
+  watchAd(): Promise<AdReward>;
   onStart(): void;
   onHome(): void;
 }
 
-function outcomeMessage(outcome: RewardOutcome, delta: number): string {
-  if (outcome === 'rewarded') return `${delta}코인 받았어요`;
-  if (delta > 0) return `광고를 불러올 수 없어 ${delta}코인을 드려요`;
-  if (outcome === 'closed') return '끝까지 시청해야 코인을 받아요';
-  return '광고를 불러올 수 없어요. 잠시 후 다시 시도해 주세요';
-}
-
 export function renderCoinScreen(root: HTMLElement, options: CoinScreenOptions): void {
-  const screen = el('main', 'screen coin-screen');
-  const top = el('div', 'coin-top');
-  let badge = coinBadge(options.coins);
-  top.appendChild(badge);
-
+  const screen = el('main', 'screen page coin-screen');
   const box = el('section', 'coin-box');
   const slot = el('div', 'coin-slot');
   slot.append(el('span', 'coin-slot-icon'), el('span', 'coin-slot-text', 'INSERT COIN'));
@@ -44,13 +34,11 @@ export function renderCoinScreen(root: HTMLElement, options: CoinScreenOptions):
   watch.addEventListener('click', async () => {
     watch.disabled = true;
     message.textContent = '광고를 불러오는 중…';
-    const { outcome, delta, coins } = await options.watchAd();
+    const result = await options.watchAd();
     if (!screen.isConnected) return;
-    message.textContent = outcomeMessage(outcome, delta);
-    const next = coinBadge(coins);
-    badge.replaceWith(next);
-    badge = next;
-    if (total(coins) >= 1) {
+    message.textContent = adOutcomeMessage(result.outcome, result.applied, result.totalBefore);
+    refreshCoinBars();
+    if (total(result.coins) >= 1) {
       title.textContent = '코인이 충전됐어요';
       watch.hidden = true;
       start.hidden = false;
@@ -62,6 +50,8 @@ export function renderCoinScreen(root: HTMLElement, options: CoinScreenOptions):
   home.addEventListener('click', options.onHome);
   actions.append(watch, start, home);
 
-  screen.append(top, box, actions);
+  const body = el('div', 'page-body coin-body');
+  body.append(box, actions);
+  screen.append(options.topBar, body);
   root.replaceChildren(screen);
 }

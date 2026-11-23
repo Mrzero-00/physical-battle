@@ -9,13 +9,17 @@
     "test": "vitest run",
     "build": "vite build",
     "build:toss": "VITE_PLATFORM=apps-in-toss vite build --outDir dist-toss && ait build",
-    "dev:toss": "VITE_PLATFORM=apps-in-toss vite"
+    "dev:toss": "VITE_PLATFORM=apps-in-toss vite",
+    "dev:mock": "VITE_PLATFORM=mock vite",
+    "build:mock": "VITE_PLATFORM=mock vite build --outDir dist-mock"
   },
   "dependencies": {
     "@apps-in-toss/web-framework": "^3.10.0",
+    "@upstash/redis": "^1.41.0",
     "three": "^0.187.0"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "@types/three": "^0.187.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",

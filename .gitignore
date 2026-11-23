@@ -17,3 +17,5 @@ dist/
 dist-toss/
 *.ait
 .vercel
+dist-mock/
+.env*

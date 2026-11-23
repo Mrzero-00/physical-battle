@@ -28,6 +28,8 @@ function fakeSdk(over: Partial<AppsInTossSdk> = {}) {
     getGameCenterGameProfile: vi.fn(async () => ({ statusCode: 'SUCCESS', nickname: '번개손', profileImageUri: 'https://x/y.png' })),
     loadFullScreenAd,
     showFullScreenAd,
+    getUserKeyForGame: vi.fn(async () => ({ type: 'HASH', hash: 'aBcD1234efGh5678' })),
+    share: vi.fn(async () => undefined),
     ...over,
   };
   return { sdk, loads, shows, loadFullScreenAd, showFullScreenAd };
@@ -227,5 +229,56 @@ describe('rewarded ads', () => {
     p.ads.preload();
     await flush();
     expect(f.loadFullScreenAd).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('identity', () => {
+  it('HASH면 toss:<hash>와 게임 닉네임', async () => {
+    const { sdk } = fakeSdk();
+    await expect(createAppsInTossPlatform({ loadSdk: async () => sdk }).identity()).resolves.toEqual({
+      playerId: 'toss:aBcD1234efGh5678',
+      nickname: '번개손',
+      needsNickname: false,
+    });
+  });
+
+  it('게임 프로필이 없으면 토스 플레이어', async () => {
+    const { sdk } = fakeSdk({ getGameCenterGameProfile: vi.fn(async () => ({ statusCode: 'PROFILE_NOT_FOUND' })) });
+    const id = await createAppsInTossPlatform({ loadSdk: async () => sdk }).identity();
+    expect(id?.nickname).toBe('토스 플레이어');
+  });
+
+  it.each([
+    ['ERROR', vi.fn(async () => 'ERROR')],
+    ['undefined', vi.fn(async () => undefined)],
+    [
+      'throw',
+      vi.fn(async () => {
+        throw new Error('bridge');
+      }),
+    ],
+  ])('사용자 키가 %s면 null', async (_, getUserKeyForGame) => {
+    const { sdk } = fakeSdk({ getUserKeyForGame });
+    await expect(createAppsInTossPlatform({ loadSdk: async () => sdk }).identity()).resolves.toBeNull();
+  });
+
+  it('토스 앱 버전이 5.232.0 미만이면 null', async () => {
+    const { sdk } = fakeSdk({ isMinVersionSupported: vi.fn((min) => min.android !== '5.232.0') });
+    await expect(createAppsInTossPlatform({ loadSdk: async () => sdk }).identity()).resolves.toBeNull();
+    expect(sdk.getUserKeyForGame).not.toHaveBeenCalled();
+  });
+});
+
+describe('share', () => {
+  it('성공하면 shared, 실패하면 failed', async () => {
+    const ok = fakeSdk();
+    await expect(createAppsInTossPlatform({ loadSdk: async () => ok.sdk }).share('hi')).resolves.toBe('shared');
+    expect(ok.sdk.share).toHaveBeenCalledWith({ message: 'hi' });
+    const bad = fakeSdk({
+      share: vi.fn(async () => {
+        throw new Error('x');
+      }),
+    });
+    await expect(createAppsInTossPlatform({ loadSdk: async () => bad.sdk }).share('hi')).resolves.toBe('failed');
   });
 });
